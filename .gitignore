@@ -2,8 +2,9 @@
 records/
 data/learner/
 
-# Copyright: paper PDFs stay on this machine (notes link to the originals)
+# Copyright: paper PDFs and eval questions copied from course materials stay on this machine
 research/pdfs/
+dev/eval/private/
 
 # Rebuildable, and may contain excerpts of course materials
 data/index/

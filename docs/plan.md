@@ -153,6 +153,7 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 
 - 第 1 步：找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`；發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
 - 第 2 步：8 個主題的統整在 `research/synthesis/`；跨主題結論、建議架構和待決定的事在 [research/synthesis/summary.md](../research/synthesis/summary.md)。
+- 第 3 步：[requirements.md](requirements.md)、[architecture.md](architecture.md) 和決策紀錄 0002–0004 已寫好，等我確認架構。
 
 ## 5. 決策紀錄
 
@@ -170,9 +171,12 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 2026-11-11 | 研究納入 media-note 的筆記格式與查證規範 |
 | 2026-11-11 | 只排順序，不排日期；一步一步做 |
 | 2026-11-11 | 研究用 4 個平行工作階段，每個負責 2 個主題，由主工作階段合併 |
+| 2026-11-11 | frontier 模型：執行時不用；開發與評估可以用，每次使用都記錄（[0002](decisions/0002-frontier-model-boundary.md)） |
+| 2026-11-11 | 評估：frontier 對照組分「同樣段落」和「完整週筆記」兩種；成功標準是 75% 不輸、中位數 ≤ 40 秒、≤ 600 字；題組擴充到約 50 題（[0003](decisions/0003-evaluation-design.md)） |
+| 2026-11-11 | 架構：由程式控制流程的薄 harness，加上 RAG 和三種模式（[0004](decisions/0004-architecture.md)，提議中） |
 
 ## 6. 待定
 
-- **第 3 步要決定的事**：見 [research/synthesis/summary.md](../research/synthesis/summary.md) 第 4 節。
+- **架構確認**：[0004](decisions/0004-architecture.md) 提議中，我確認 [architecture.md](architecture.md) 後改為已採用。
 - **互動紀錄要不要另外備份**：目前只在本機；之後可以另開一個私人 repo。
 - **期末專題要不要沿用**：先不管。
