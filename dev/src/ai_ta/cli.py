@@ -61,7 +61,8 @@ def cmd_ask(args: argparse.Namespace) -> int:
         console.print(f"  {line}")
     if not result.check.ok:
         console.print("[yellow]出處標記不完整，請對照筆記確認。[/yellow]")
-    console.print(f"[dim]{result.total_seconds:.1f} 秒，{len(result.answer)} 字[/dim]")
+    kind = result.route.type if result.route else "未判斷"
+    console.print(f"[dim]題型 {kind}，{result.total_seconds:.1f} 秒，{len(result.answer)} 字[/dim]")
     return 0
 
 
@@ -202,6 +203,10 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
                 "cited": list(result.check.cited), "citations_ok": result.check.ok,
                 "refused": result.check.refused, "retries": result.retries,
                 "history_turns": len(chain),
+                "route": result.route.type if result.route else None,
+                "route_seconds": round(result.route_seconds, 2),
+                "expression": result.route.expression if result.route else "",
+                "calc_value": result.calc_value,
             }
             records.append(record)
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
@@ -217,6 +222,10 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
     console.print(f"\nAI TA: median {statistics.median(seconds):.1f} s, {statistics.median(chars):.0f} 字; "
                   f"citations ok {sum(r['citations_ok'] for r in records)}/{len(records)}")
     console.print(f"Baseline: median {statistics.median(base_seconds):.1f} s, {statistics.median(base_chars):.0f} 字")
+    typed = [(r, by_id[r["id"]]["type"]) for r in records if by_id[r["id"]]["type"] != "follow-up" and r["route"]]
+    if typed:
+        console.print(f"Routing matched the labelled type on {sum(r['route'] == t for r, t in typed)}/{len(typed)}"
+                      " non-follow-up questions")
     console.print(f"[dim]saved {out.relative_to(config.REPO_ROOT)}[/dim]")
     return 0
 

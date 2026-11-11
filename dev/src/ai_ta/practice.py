@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from . import llm
 from .explain import harness_text
@@ -29,26 +29,8 @@ class Grade(BaseModel):
     feedback: str
 
 
-class PracticeError(RuntimeError):
-    """The model did not return a valid structured answer after retrying."""
-
-
 def _passage(chunk: Chunk) -> str:
     return f"[1] {chunk.location}\n{clean_text(chunk.text)}"
-
-
-def _structured(messages: list[dict[str, str]], schema: type[BaseModel], *, temperature: float,
-                purpose: str) -> BaseModel:
-    options = {"temperature": temperature, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 900,
-               "seed": 7}
-    last_error = ""
-    for _ in range(2):
-        result = llm.chat(messages, fmt=schema.model_json_schema(), options=options, purpose=purpose)
-        try:
-            return schema.model_validate_json(result.content)
-        except ValidationError as exc:
-            last_error = str(exc)
-    raise PracticeError(f"{purpose}: invalid output after a retry: {last_error[:300]}")
 
 
 def bloom_for(attempts: int) -> str:
@@ -59,8 +41,9 @@ def bloom_for(attempts: int) -> str:
 def make_question(chunk: Chunk, bloom: str) -> QuizItem:
     system = harness_text("systemprompt.md", "skills/quiz/SKILL.md")
     user = f"筆記段落：\n\n{_passage(chunk)}\n\n請出一題「{bloom}」層級的回想題。"
-    return _structured([{"role": "system", "content": system}, {"role": "user", "content": user}],
-                       QuizItem, temperature=0.4, purpose="quiz")
+    quiz, _ = llm.structured([{"role": "system", "content": system}, {"role": "user", "content": user}],
+                             QuizItem, temperature=0.4, purpose="quiz")
+    return quiz
 
 
 def is_give_up(answer: str) -> bool:
@@ -75,5 +58,6 @@ def grade(chunk: Chunk, quiz: QuizItem, answer: str) -> Grade:
     points = "\n".join(f"- {p}" for p in quiz.reference_points)
     user = (f"筆記段落：\n\n{_passage(chunk)}\n\n題目：{quiz.question}\n\n參考要點：\n{points}\n\n"
             f"使用者的作答：{answer}")
-    return _structured([{"role": "system", "content": system}, {"role": "user", "content": user}],
-                       Grade, temperature=0.0, purpose="grade")
+    result, _ = llm.structured([{"role": "system", "content": system}, {"role": "user", "content": user}],
+                               Grade, temperature=0.0, purpose="grade")
+    return result
