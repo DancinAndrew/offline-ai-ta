@@ -149,6 +149,8 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 6 | Agent 與介面 | `dev/` 第二版 | 能完整走完一段複習 |
 | 7 | 評估與報告：裸模型、AI TA、frontier 模型三方比較 | `reports/` 成果報告與展示（英文＋中文） | 有數字，也有展示 |
 
+**進度**：第 0、1 步已完成。第 1 步找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`，發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
+
 ## 5. 決策紀錄
 
 | 日期 | 決定 |

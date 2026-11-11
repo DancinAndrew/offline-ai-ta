@@ -38,7 +38,7 @@
 | 課程筆記格式（media-note reading-v3） | `~/.claude/skills/media-note/references/note-format.md`；摘要見 [notes/internal/media-note.md](notes/internal/media-note.md) | T2 切段與出處、T3 出題、T7 回答格式 |
 | 查證規範（media-note research-policy） | `~/.claude/skills/media-note/references/research-policy.md` | 本規範的分級與主張分類 |
 | 課程筆記與期中複習 | `Machine Learning/Week*/`、`Machine Learning/Midterm Review/` | T2、T8 |
-| 在飛機上問過的問題 | 第 1 步整理後放進評估題組 | T1、T8 |
+| 期中準備時問過的 16 個問題與基準回答 | [dev/eval/midterm-baseline.jsonl](../dev/eval/midterm-baseline.jsonl)；摘要見 [notes/internal/ollama-app-baseline.md](notes/internal/ollama-app-baseline.md) | T2、T7、T8 |
 
 ## 3. 來源分級
 

@@ -23,3 +23,4 @@
 | 來源 | 類型 | 主題 | 一句話 |
 |---|---|---|---|
 | [media-note 筆記格式與查證規範](notes/internal/media-note.md) | 自己的 skill | T2、T3、T7 | 課程筆記的固定結構（H3 問題小節、這節記住、講義頁連結、自我檢查），可以直接拿來切段、引用和出題 |
+| [Ollama App 基準紀錄](notes/internal/ollama-app-baseline.md) | 自己的使用紀錄 | T2、T7、T8 | 未調整的 qwen3.5:9b 回答 16 個期中問題：可判斷的 2 題都對，但平均 2,231 字、74 秒；3 題因複製遺失公式 |
