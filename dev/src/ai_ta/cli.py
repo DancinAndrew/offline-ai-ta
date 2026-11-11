@@ -170,6 +170,9 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
     by_id = {item["id"]: item for item in items}
     baseline_answers = evaluate.load_baseline_answers()
     out = evaluate.run_path("explain")
+    # Recorded before the run, so later edits or commits cannot be mistaken for the version that ran.
+    meta = {"version": evaluate.git_version(), "model": config.GENERATION_MODEL, "embedding_model": args.model,
+            "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS}
     with index.connect() as conn:
         retriever = Retriever(conn, chunking=args.chunking, model=args.model)
         # Load both models before timing anything; cold starts are reported separately.
@@ -203,8 +206,6 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
             records.append(record)
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
                           f"cited {record['cited']}  ok={record['citations_ok']}")
-    meta = {"version": evaluate.git_version(), "model": config.GENERATION_MODEL, "embedding_model": args.model,
-            "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS}
     with out.open("w", encoding="utf-8") as f:
         f.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
         for record in records:

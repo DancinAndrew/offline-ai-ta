@@ -23,7 +23,9 @@ def git_version() -> str:
     def git(*args: str) -> str:
         return subprocess.run(["git", "-C", str(config.REPO_ROOT), *args], capture_output=True, text=True).stdout.strip()
     commit = git("rev-parse", "--short", "HEAD") or "unknown"
-    return commit + ("-dirty" if git("status", "--porcelain", "dev/") else "")
+    # Run outputs do not count as changes to the harness or code.
+    dirty = git("status", "--porcelain", "--", "dev", ":(exclude)dev/eval/runs", ":(exclude)dev/eval/private")
+    return commit + ("-dirty" if dirty else "")
 
 
 def run_path(kind: str, suffix: str = ".jsonl") -> Path:

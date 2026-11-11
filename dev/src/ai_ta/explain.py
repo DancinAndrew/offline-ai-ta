@@ -18,7 +18,8 @@ from .textutil import clean_text
 CITATION = re.compile(r"\[(\d+)\]")
 REFUSAL = "筆記裡沒有提到"
 
-OPTIONS = {"temperature": 0.3, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 800}
+# A fixed seed makes eval runs repeatable, so a change in results comes from a change in the harness.
+OPTIONS = {"temperature": 0.3, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 800, "seed": 7}
 
 
 def harness_text(*names: str) -> str:

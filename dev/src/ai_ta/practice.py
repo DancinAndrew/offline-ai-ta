@@ -39,7 +39,8 @@ def _passage(chunk: Chunk) -> str:
 
 def _structured(messages: list[dict[str, str]], schema: type[BaseModel], *, temperature: float,
                 purpose: str) -> BaseModel:
-    options = {"temperature": temperature, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 900}
+    options = {"temperature": temperature, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 900,
+               "seed": 7}
     last_error = ""
     for _ in range(2):
         result = llm.chat(messages, fmt=schema.model_json_schema(), options=options, purpose=purpose)
