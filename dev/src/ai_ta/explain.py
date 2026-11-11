@@ -61,6 +61,53 @@ def calc_passage(expression: str, value: float) -> Chunk:
     return Chunk("calc", "calc", "", ("程式計算結果",), 0, 1, 0, 0, f"{expression} = {value:.6g}", ())
 
 
+class ClaimVerdict(BaseModel):
+    claim: str
+    verdict: Literal["正確", "需要修正", "錯誤", "筆記沒寫"]
+    evidence: list[int] = Field(default_factory=list)
+    correction: str = ""
+
+
+class ClaimCheck(BaseModel):
+    claims: list[ClaimVerdict]
+    summary: str
+
+
+MAX_CHECK_PASSAGES = 6
+
+
+def retrieve_for_claims(retriever: Retriever, query: str, claims: list[str], k: int) -> list[Hit]:
+    """Retrieve for the whole message and for each claim, so every claim gets its own evidence."""
+    hits: dict[str, Hit] = {}
+    for hit in retriever.search(query, k=k):
+        hits.setdefault(hit.chunk.chunk_id, hit)
+    for claim in claims:
+        for hit in retriever.search(claim, k=2):
+            hits.setdefault(hit.chunk.chunk_id, hit)
+    return list(hits.values())[:MAX_CHECK_PASSAGES]
+
+
+def check_claims(question: str, claims: list[str], passages: list[Chunk]) -> tuple[ClaimCheck, float]:
+    """Judge each claim in its own structured call, before any answer is written (failure: mb-08, mb-16)."""
+    numbered = "\n".join(f"{n}. {claim}" for n, claim in enumerate(claims, start=1))
+    user = f"筆記段落：\n\n{passages_block(passages)}\n\n使用者的主張：\n{numbered}\n\n使用者的原話：{question}"
+    messages = [{"role": "system", "content": harness_text("skills/check/SKILL.md")}, {"role": "user", "content": user}]
+    return llm.structured(messages, ClaimCheck, temperature=0.0, purpose="check", num_predict=1200)
+
+
+def render_check(result: ClaimCheck, passage_count: int) -> str:
+    lines = [result.summary.strip(), ""]
+    for c in result.claims:
+        cite = "".join(f"[{n}]" for n in c.evidence if 1 <= n <= passage_count)
+        if c.verdict == "正確":
+            lines.append(f"- 對：{c.claim} {cite}".rstrip())
+        elif c.verdict == "筆記沒寫":
+            lines.append(f"- {REFUSAL}：{c.claim}")
+        else:
+            lines.append(f"- {c.verdict}：{c.claim} → {c.correction} {cite}".rstrip())
+    return "\n".join(lines).strip()
+
+
 @dataclass(frozen=True)
 class CitationCheck:
     cited: tuple[int, ...]
@@ -92,6 +139,7 @@ class ExplainResult:
     route: Route | None = None
     route_seconds: float = 0.0
     calc_value: float | None = None
+    claim_check: ClaimCheck | None = None
     prompt_tokens: int | None = None
     output_tokens: int | None = None
     attempts: list[str] = field(default_factory=list)
@@ -104,6 +152,19 @@ class ExplainResult:
 def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dict[str, str]] | None = None,
            retrieval_query: str | None = None, use_router: bool = True) -> ExplainResult:
     routed, route_seconds = route(question) if use_router else (None, 0.0)
+
+    if routed and routed.type == "check-understanding" and routed.claims:
+        started = time.perf_counter()
+        hits = retrieve_for_claims(retriever, retrieval_query or question, routed.claims, k)
+        retrieval_seconds = time.perf_counter() - started
+        passages = [hit.chunk for hit in hits]
+        try:
+            judged, seconds = check_claims(question, routed.claims, passages)
+            text = render_check(judged, len(passages))
+            return ExplainResult(question, text, passages, hits, check_citations(text, len(passages)), 0,
+                                 retrieval_seconds, seconds, routed, route_seconds, claim_check=judged)
+        except llm.StructuredOutputError:
+            pass  # fall back to a normal explanation below
 
     passages: list[Chunk] = []
     calc_value = None
@@ -139,8 +200,8 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
                                         f"段落裡沒有答案就寫「{REFUSAL}」。"},
         ]
     return ExplainResult(question, attempts[-1], passages, hits, check, len(attempts) - 1, retrieval_seconds,
-                         generation_seconds, routed, route_seconds, calc_value, prompt_tokens, output_tokens,
-                         attempts)
+                         generation_seconds, route=routed, route_seconds=route_seconds, calc_value=calc_value,
+                         prompt_tokens=prompt_tokens, output_tokens=output_tokens, attempts=attempts)
 
 
 def sources(result: ExplainResult) -> list[str]:

@@ -207,6 +207,7 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
                 "route_seconds": round(result.route_seconds, 2),
                 "expression": result.route.expression if result.route else "",
                 "calc_value": result.calc_value,
+                "claims": [c.model_dump() for c in result.claim_check.claims] if result.claim_check else None,
             }
             records.append(record)
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
