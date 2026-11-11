@@ -29,7 +29,7 @@ This folder is the public GitHub repo `DancinAndrew/offline-ai-ta`.
 
 - Never commit `records/`, `data/learner/`, `data/index/`, `research/pdfs/`, course materials (they stay in `../Week*/` and `../Midterm Review/`), or questions copied from course materials.
 - Check `git status` before every commit.
-- Commits use the GitHub noreply email set in this repo's local git config.
+- Commits use the user's global git identity (their Gmail), the same as their other public repos.
 
 ## Languages
 
