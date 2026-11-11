@@ -144,17 +144,21 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 1 | 從 Ollama App 的對話紀錄找出在飛機上問的期中問題 | 問題清單；原始對話存 `records/ai-ta-build/`，題目整理進評估題組 | 只取課程相關的對話，清單我看過才存 |
 | 2 | 研究 8 個主題 | `research/`；研究結束時把研究對話匯出到 `records/ai-ta-build/` | 各主題達到完成標準 |
 | 3 | 討論與決策 | `docs/requirements.md`、`architecture.md`、`decisions/` | 我同意架構 |
-| 4 | 對外提案 | `reports/` 提案（英文＋中文） | 我覺得可以拿給老師看 |
+| 4 | （取消）不需要對外提案，直接開發 | — | — |
 | 5 | 最小可用版：期中範圍問答附出處、出題批改、評估題組 | `dev/` 第一版 | 斷網能跑；題組有分數 |
 | 6 | Agent 與介面 | `dev/` 第二版 | 能完整走完一段複習 |
 | 7 | 評估與報告：裸模型、AI TA、frontier 模型三方比較 | `reports/` 成果報告與展示（英文＋中文） | 有數字，也有展示 |
 
-**進度**：第 0–3 步已完成。
+**進度**：第 0–3 步已完成，第 4 步取消，第 5 步進行中。
 
 - 第 1 步：找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`；發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
 - 第 2 步：8 個主題的統整在 `research/synthesis/`；跨主題結論、建議架構和待決定的事在 [research/synthesis/summary.md](../research/synthesis/summary.md)。
 - 第 3 步：[requirements.md](requirements.md)、[architecture.md](architecture.md) 和決策紀錄 0002–0004；架構已確認。
-- 第 4 步：提案草稿 [英文](../reports/2026-11-11-proposal.md)、[中文](../reports/2026-11-11-proposal.zh-TW.md)，等我確認可以拿給老師看。
+- 第 4 步：取消。已寫好的提案草稿（[英文](../reports/2026-11-11-proposal.md)、[中文](../reports/2026-11-11-proposal.zh-TW.md)）保留下來當專案概覽，之後寫成果報告可以沿用。
+- 第 5 步（進行中）：
+  - 完成：索引（53 份筆記、783 個段落）、檢索比較（[0005](decisions/0005-retrieval.md)）、搜尋／解釋／練習三種模式、學習者模型與 FSRS 排程、16 題參考答案草稿、第一次評估。
+  - 第一次評估：中位數 18.3 秒、262 字，出處標記 16/16 有效；Claude 初評正確 6、部分正確 6、錯誤 4（`dev/eval/runs/2026-11-11-2045-*`）。
+  - 還沒完成：離線驗收（要重啟 Ollama 讓 `server.json` 生效）、我核對參考答案。
 
 ## 5. 決策紀錄
 
@@ -175,6 +179,8 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 2026-11-11 | frontier 模型：執行時不用；開發與評估可以用，每次使用都記錄（[0002](decisions/0002-frontier-model-boundary.md)） |
 | 2026-11-11 | 評估：frontier 對照組分「同樣段落」和「完整週筆記」兩種；成功標準是 75% 不輸、中位數 ≤ 40 秒、≤ 600 字；題組擴充到約 50 題（[0003](decisions/0003-evaluation-design.md)） |
 | 2026-11-11 | 架構：由程式控制流程的薄 harness，加上 RAG 和三種模式（[0004](decisions/0004-architecture.md)） |
+| 2026-11-11 | 取消第 4 步：不需要對外提案，直接開發 |
+| 2026-11-11 | 檢索：qwen3-embedding:0.6b、只用向量、依標題切段；混合檢索在這批筆記上反而變差（[0005](decisions/0005-retrieval.md)） |
 
 ## 6. 待定
 

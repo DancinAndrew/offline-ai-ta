@@ -1,14 +1,16 @@
 # eval
 
-評估題組與結果。`dev/` 其他部分的結構等開發階段再定。
+評估題組與每次的結果。
 
 ## 題組
 
-| 檔案 | 內容 |
-|---|---|
-| `midterm-baseline.jsonl` | 期中準備時在 Ollama App 問 qwen3.5:9b 的 16 個課程問題，附基準回答的量測。原始對話在 `records/ai-ta-build/2026-10-25_ollama-app_midterm-study.md`（只在本機） |
+| 檔案 | 內容 | 公開 |
+|---|---|---|
+| `midterm-baseline.jsonl` | 期中準備時在 Ollama App 問 qwen3.5:9b 的 16 個課程問題，附參考答案、答案所在的筆記段落、基準回答的量測。原始對話在 `records/ai-ta-build/2026-10-25_ollama-app_midterm-study.md`（只在本機） | 是 |
+| `private/baseline-answers.jsonl` | 上面 16 題的基準回答全文，給評估時的「固定前文」和盲評用 | 否 |
+| `runs/` | 每次評估的結果：設定、程式版本（Git commit）、逐題紀錄 | 是 |
 
-從講義或練習題直接摘錄的題目不放這裡，因為這個資料夾會公開。
+從講義或練習題直接摘錄的題目不放公開的檔案，放 `private/`。
 
 ## 欄位（`midterm-baseline.jsonl`，一行一題）
 
@@ -22,6 +24,17 @@
 | `question_restored` | 補回公式後的版本；只有 `formula_lost` 為 true 的題目才有 |
 | `formula_lost` | 從 Obsidian 閱讀畫面複製時，數學式遺失了 |
 | `pasted_from` | 問題文字的出處筆記與行號（路徑相對於 `Machine Learning/`） |
-| `reference_answer` | 參考答案；目前只有可客觀判斷的 2 題，其他之後補 |
+| `gold_sections` | 答案所在的筆記段落，用索引裡的段落 ID 表示；檢索評估用它算命中率 |
+| `reference_points` | 參考答案，寫成 3–5 個要點，都出自筆記；標「補充（筆記沒寫）」的是筆記以外的正確內容，答出來加分、沒答不扣分 |
+| `misconceptions` | 只有確認理解題才有：使用者說法裡每一點的判定（正確、需要修正、錯誤） |
+| `grading_label` | 只有確認理解題才有：使用者說法整體的批改類別 |
+| `reference_status` | `draft`：Claude 從筆記起草，還沒核對；`verified`：已由我核對 |
 | `baseline` | 基準回答的量測：字數、從發問到答完的秒數、思考秒數、是否正確 |
-| `user_rating` | 使用者對基準回答的評價，之後補 |
+| `user_rating` | 我對基準回答的評價，之後補 |
+
+## 怎麼跑
+
+```bash
+PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta eval-retrieval
+PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta eval-explain
+```

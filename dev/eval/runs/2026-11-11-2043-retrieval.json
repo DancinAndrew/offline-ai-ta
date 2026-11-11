@@ -1,0 +1,202 @@
+{
+  "version": "b734161-dirty",
+  "k": 5,
+  "questions": 16,
+  "scores": [
+    {
+      "chunking": "heading",
+      "method": "keyword",
+      "model": "bge-m3",
+      "recall_at_k": 0.5625,
+      "mrr": 0.3770833333333333,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-15",
+        "mb-18",
+        "mb-19"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "vector",
+      "model": "bge-m3",
+      "recall_at_k": 0.625,
+      "mrr": 0.359375,
+      "misses": [
+        "mb-06",
+        "mb-13",
+        "mb-14",
+        "mb-15",
+        "mb-17",
+        "mb-18"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "hybrid",
+      "model": "bge-m3",
+      "recall_at_k": 0.5625,
+      "mrr": 0.39791666666666664,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-15",
+        "mb-17",
+        "mb-18"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "vector",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.875,
+      "mrr": 0.5510416666666667,
+      "misses": [
+        "mb-07",
+        "mb-17"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "hybrid",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.8125,
+      "mrr": 0.44999999999999996,
+      "misses": [
+        "mb-05",
+        "mb-09",
+        "mb-17"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "vector",
+      "model": "embeddinggemma-2:270m",
+      "recall_at_k": 0.75,
+      "mrr": 0.54375,
+      "misses": [
+        "mb-06",
+        "mb-13",
+        "mb-14",
+        "mb-17"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "hybrid",
+      "model": "embeddinggemma-2:270m",
+      "recall_at_k": 0.75,
+      "mrr": 0.46354166666666663,
+      "misses": [
+        "mb-05",
+        "mb-09",
+        "mb-17",
+        "mb-18"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "keyword",
+      "model": "bge-m3",
+      "recall_at_k": 0.5625,
+      "mrr": 0.4239583333333333,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-15",
+        "mb-17",
+        "mb-19"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "vector",
+      "model": "bge-m3",
+      "recall_at_k": 0.625,
+      "mrr": 0.33854166666666663,
+      "misses": [
+        "mb-06",
+        "mb-14",
+        "mb-15",
+        "mb-17",
+        "mb-18",
+        "mb-19"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "hybrid",
+      "model": "bge-m3",
+      "recall_at_k": 0.5625,
+      "mrr": 0.34374999999999994,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-15",
+        "mb-17",
+        "mb-19"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "vector",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.9375,
+      "mrr": 0.671875,
+      "misses": [
+        "mb-17"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "hybrid",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.6875,
+      "mrr": 0.509375,
+      "misses": [
+        "mb-05",
+        "mb-09",
+        "mb-13",
+        "mb-17",
+        "mb-19"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "vector",
+      "model": "embeddinggemma-2:270m",
+      "recall_at_k": 0.8125,
+      "mrr": 0.55625,
+      "misses": [
+        "mb-06",
+        "mb-15",
+        "mb-17"
+      ]
+    },
+    {
+      "chunking": "fixed",
+      "method": "hybrid",
+      "model": "embeddinggemma-2:270m",
+      "recall_at_k": 0.5625,
+      "mrr": 0.4708333333333334,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-14",
+        "mb-17",
+        "mb-19"
+      ]
+    }
+  ]
+}

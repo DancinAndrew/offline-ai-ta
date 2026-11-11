@@ -9,6 +9,9 @@ dev/eval/private/
 # Rebuildable, and may contain excerpts of course materials
 data/index/
 
+# Model call logs contain my questions and the model's answers
+data/logs/
+
 # Python
 __pycache__/
 *.py[cod]

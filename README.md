@@ -4,7 +4,7 @@ An offline AI teaching assistant for exam-style review of a university machine l
 
 [中文版](README.zh-TW.md)
 
-> **Status:** research and design are done; implementation is next, and there is no code yet. See the [project proposal](reports/2026-11-11-proposal.md).
+> **Status:** first working version in the terminal. Search, explanation and practice modes run on the local models, and the first evaluation is in [`dev/eval/runs/`](dev/eval/runs/). Usage is in [`dev/README.md`](dev/README.md); the project overview is in the [proposal](reports/2026-11-11-proposal.md).
 
 ## Why
 

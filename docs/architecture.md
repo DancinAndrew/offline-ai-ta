@@ -20,7 +20,7 @@
           │
 Python 核心（dev/src/ai_ta/）
  ├─ ingest     讀 vault 的 .md 原檔 → 切段 → 建索引
- ├─ retrieve   向量＋關鍵字混合檢索
+ ├─ retrieve   向量檢索（關鍵字與混合檢索只當選項）
  ├─ modes      搜尋、解釋、練習三種流程
  ├─ learner    作答紀錄、掌握度、FSRS 排程
  ├─ llm        呼叫 Ollama：重試、驗證、記錄每次呼叫
@@ -28,7 +28,7 @@ Python 核心（dev/src/ai_ta/）
           │
 harness（dev/harness/，純文字檔，改動就是 diff）
           │
-Ollama：qwen3.5:9b ＋ 一個嵌入模型（OLLAMA_NO_CLOUD=1）
+Ollama：qwen3.5:9b ＋ qwen3-embedding:0.6b（OLLAMA_NO_CLOUD=1）
 ```
 
 ## 3. 資料
@@ -50,12 +50,12 @@ Ollama：qwen3.5:9b ＋ 一個嵌入模型（OLLAMA_NO_CLOUD=1）
 1. 依 `data/knowledge/` 的清單讀筆記原檔。
 2. 依最小的標題節切段（H2、H3 或 H4），保留 Markdown 原文和 LaTeX。
 3. 每段前面接上「檔名 > H2 > H3」，並記下段內的講義頁連結。
-4. 用嵌入模型算向量；用 SQLite FTS5 建關鍵字索引。
+4. 用嵌入模型算向量，依段落文字的雜湊值快取，沒改到的段落重建時不必重算；另用 SQLite FTS5 建關鍵字索引（中文拆成相鄰兩字一組）。
 5. 期中範圍約 965 節，逐一算相似度就夠了，不需要向量資料庫。
 
 ### 4.2 搜尋模式
 
-問題 → 混合檢索（向量和關鍵字依排名合併）→ 列出前幾段的標題路徑、摘錄和講義頁連結。不呼叫生成模型。
+問題 → 向量檢索 → 列出前幾段的標題路徑和講義頁連結。不呼叫生成模型。關鍵字和混合檢索可以用選項切換（[0005](decisions/0005-retrieval.md)）。
 
 ### 4.3 解釋模式
 
@@ -101,11 +101,11 @@ Ollama：qwen3.5:9b ＋ 一個嵌入模型（OLLAMA_NO_CLOUD=1）
 | 語言 | Python 3.12（上層共用的 uv 環境） | 已有 |
 | 生成模型 | qwen3.5:9b（[0001](decisions/0001-base-model-qwen3.5-9b.md)） | 已有 |
 | 呼叫方式 | Ollama HTTP API：`/api/chat`（`format`、`think`）、`/api/embed` | 已有 |
-| 嵌入模型 | 比較 `bge-m3`、`qwen3-embedding:0.6b`、`embeddinggemma-2:270m` 後選一個 | 第 5 步下載，先問 |
+| 嵌入模型 | `qwen3-embedding:0.6b`，比較 3 個候選後選定（[0005](decisions/0005-retrieval.md)） | 已下載 |
 | 索引 | SQLite 與 FTS5（Python 內建） | 已有 |
-| 結構化輸出驗證 | Pydantic | 第 5 步安裝，先問 |
-| 排程 | py-fsrs | 第 5 步安裝，先問 |
-| 終端機介面 | Rich | 第 5 步安裝，先問 |
+| 結構化輸出驗證 | Pydantic | 已安裝（2.14.3） |
+| 排程 | py-fsrs | 已安裝（fsrs 6.3.2） |
+| 終端機介面 | Rich | 共用環境原本就有 |
 | 網頁介面 | Gradio | 第 6 步安裝，先問 |
 
 **取樣設定**：結構化輸出和工具步驟調低溫度；思考模式只在需要推理的步驟開。
@@ -126,6 +126,7 @@ Ollama：qwen3.5:9b ＋ 一個嵌入模型（OLLAMA_NO_CLOUD=1）
 | 現成 agent 外殼 | 第 7 步當對照組 |
 | 自主 agent 規劃 | 第 7 步當對照組 |
 | 重排序、改寫查詢 | 檢索命中率不夠時 |
+| 混合關鍵字檢索 | 題組擴充到約 50 題後重測（[0005](decisions/0005-retrieval.md)） |
 | 投影片 PDF 解析 | 筆記沒涵蓋的內容成為問題時 |
 | Obsidian 外掛 | 核心穩定後 |
 
@@ -133,6 +134,6 @@ Ollama：qwen3.5:9b ＋ 一個嵌入模型（OLLAMA_NO_CLOUD=1）
 
 - API 傳 `num_ctx: 65536` 後，`ollama ps` 仍顯示 32768。
 - 生成速度約每秒 10 token，比第 1 步推算的慢。
-- 中文關鍵字檢索：FTS5 的 trigram 分詞能不能比對兩個字的術語。
+- 中文關鍵字檢索：改用相鄰兩字一組的分詞，兩個字的術語可以比對了，但口語問題的命中率仍低（[0005](decisions/0005-retrieval.md)）。
 - 依標題切段和固定長度切段，哪個好。
 - 思考模式在每個步驟的成本和效果。
