@@ -149,7 +149,10 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 6 | Agent 與介面 | `dev/` 第二版 | 能完整走完一段複習 |
 | 7 | 評估與報告：裸模型、AI TA、frontier 模型三方比較 | `reports/` 成果報告與展示（英文＋中文） | 有數字，也有展示 |
 
-**進度**：第 0、1 步已完成。第 1 步找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`，發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
+**進度**：第 0、1、2 步已完成。
+
+- 第 1 步：找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`；發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
+- 第 2 步：8 個主題的統整在 `research/synthesis/`；跨主題結論、建議架構和待決定的事在 [research/synthesis/summary.md](../research/synthesis/summary.md)。
 
 ## 5. 決策紀錄
 
@@ -166,9 +169,10 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 | 2026-11-11 | 文件語言：自己看的用中文；對外文件英文、中文各一份 |
 | 2026-11-11 | 研究納入 media-note 的筆記格式與查證規範 |
 | 2026-11-11 | 只排順序，不排日期；一步一步做 |
+| 2026-11-11 | 研究用 4 個平行工作階段，每個負責 2 個主題，由主工作階段合併 |
 
 ## 6. 待定
 
-- **研究要平行還是依序**：預設開 4 個平行工作階段，第 2 步開始前再確認。
+- **第 3 步要決定的事**：見 [research/synthesis/summary.md](../research/synthesis/summary.md) 第 4 節。
 - **互動紀錄要不要另外備份**：目前只在本機；之後可以另開一個私人 repo。
 - **期末專題要不要沿用**：先不管。
