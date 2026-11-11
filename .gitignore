@@ -1,0 +1,18 @@
+# Private: AI interaction records and personal study data stay on this machine
+records/
+data/learner/
+
+# Copyright: paper PDFs stay on this machine (notes link to the originals)
+research/pdfs/
+
+# Rebuildable, and may contain excerpts of course materials
+data/index/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# macOS
+.DS_Store
