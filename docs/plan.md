@@ -154,6 +154,7 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 - 第 1 步：找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`；發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
 - 第 2 步：8 個主題的統整在 `research/synthesis/`；跨主題結論、建議架構和待決定的事在 [research/synthesis/summary.md](../research/synthesis/summary.md)。
 - 第 3 步：[requirements.md](requirements.md)、[architecture.md](architecture.md) 和決策紀錄 0002–0004；架構已確認。
+- 第 4 步：提案草稿 [英文](../reports/2026-11-11-proposal.md)、[中文](../reports/2026-11-11-proposal.zh-TW.md)，等我確認可以拿給老師看。
 
 ## 5. 決策紀錄
 

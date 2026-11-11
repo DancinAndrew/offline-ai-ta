@@ -4,7 +4,7 @@ An offline AI teaching assistant for exam-style review of a university machine l
 
 [中文版](README.zh-TW.md)
 
-> **Status:** research phase. No code yet.
+> **Status:** research and design are done; implementation is next, and there is no code yet. See the [project proposal](reports/2026-11-11-proposal.md).
 
 ## Why
 
