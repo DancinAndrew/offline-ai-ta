@@ -1,6 +1,6 @@
 # 架構
 
-> 2026-11-11 草案，等我確認後定案（決策紀錄 [0004](decisions/0004-architecture.md)）。需求見 [requirements.md](requirements.md)，每個選擇的研究依據見 [research/synthesis/summary.md](../research/synthesis/summary.md)。
+> 2026-11-11 定案（決策紀錄 [0004](decisions/0004-architecture.md)）。開發中要改架構，先新增決策紀錄。需求見 [requirements.md](requirements.md)，每個選擇的研究依據見 [research/synthesis/summary.md](../research/synthesis/summary.md)。
 
 ## 1. 原則
 

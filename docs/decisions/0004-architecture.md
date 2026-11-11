@@ -1,7 +1,7 @@
 # 0004 架構：由程式控制流程的薄 harness
 
 - 日期：2026-11-11
-- 狀態：提議中，等我確認 [architecture.md](../architecture.md)
+- 狀態：已採用（2026-11-11 確認 [architecture.md](../architecture.md)）
 
 ## 背景
 
