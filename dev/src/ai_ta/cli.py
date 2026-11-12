@@ -137,22 +137,43 @@ def cmd_progress(args: argparse.Namespace) -> int:
     return 0
 
 
+def _eval_items(args: argparse.Namespace) -> tuple[list[dict], dict[str, dict]]:
+    """The questions to run, plus every question by id so follow-ups can find the turns they follow."""
+    if args.split != "dev" and not args.allow_test:
+        raise SystemExit("The test split is held out until step 7 (decision 0006); add --allow-test to run it.")
+    args.sets = args.sets or list(evaluate.EVAL_SETS)
+    missing = [name for name in args.sets if not evaluate.EVAL_SETS[name].exists()]
+    if missing:
+        console.print(f"[yellow]skipped sets without a local file: {', '.join(missing)}[/yellow]")
+    items = evaluate.load_items(args.sets, args.split)
+    if not items:
+        raise SystemExit("No questions in the chosen sets and split.")
+    return items, {item["id"]: item for item in evaluate.load_items(args.sets, "all")}
+
+
+def _check_gold(conn, items: list[dict]) -> None:
+    missing = evaluate.missing_gold(conn, items)
+    if missing:
+        lines = "\n".join(f"  {item_id}: {', '.join(gold)}" for item_id, gold in missing.items())
+        raise SystemExit(f"Gold sections missing from the index (renamed headings?); fix the eval set:\n{lines}")
+
+
 def cmd_eval_retrieval(args: argparse.Namespace) -> int:
-    items = evaluate.load_items()
+    items, by_id = _eval_items(args)
+    models = config.EMBEDDING_MODELS if args.models == "all" else tuple(args.models.split(","))
     scores = []
     with index.connect() as conn:
+        _check_gold(conn, items)
         for chunking in args.chunkings.split(","):
-            scores.append(evaluate.score_retrieval(conn, items, chunking=chunking, method="keyword",
-                                                   model=config.EMBEDDING_MODELS[0], k=args.k))
-            for model in config.EMBEDDING_MODELS:
-                for method in ("vector", "hybrid"):
+            for method in args.methods.split(","):
+                # Keyword search does not use the embedding model, so it runs once per chunking.
+                for model in models[:1] if method == "keyword" else models:
                     try:
                         scores.append(evaluate.score_retrieval(conn, items, chunking=chunking, method=method,
-                                                               model=model, k=args.k))
+                                                               model=model, k=args.k, by_id=by_id))
                     except LookupError as exc:
-                        console.print(f"[yellow]skipped {model} / {chunking}: {exc}[/yellow]")
-                        break
-    table = Table(title=f"Retrieval on {len(items)} questions (top {args.k})")
+                        console.print(f"[yellow]skipped {model} / {chunking} / {method}: {exc}[/yellow]")
+    table = Table(title=f"Retrieval on {len(items)} {args.split} questions from {', '.join(args.sets)} (top {args.k})")
     for column in ("chunking", "method", "embedding model", f"recall@{args.k}", "MRR", "missed"):
         table.add_column(column)
     for s in scores:
@@ -160,21 +181,23 @@ def cmd_eval_retrieval(args: argparse.Namespace) -> int:
         table.add_row(s.chunking, s.method, model, f"{s.recall_at_k:.2f}", f"{s.mrr:.2f}", " ".join(s.misses))
     console.print(table)
     out = evaluate.run_path("retrieval", ".json")
-    out.write_text(json.dumps({"version": evaluate.git_version(), "k": args.k, "questions": len(items),
-                               "scores": [s.__dict__ for s in scores]}, ensure_ascii=False, indent=2), encoding="utf-8")
+    out.write_text(json.dumps({"version": evaluate.git_version(), "k": args.k, "sets": args.sets, "split": args.split,
+                               "questions": len(items), "scores": [s.__dict__ for s in scores]},
+                              ensure_ascii=False, indent=2), encoding="utf-8")
     console.print(f"[dim]saved {out.relative_to(config.REPO_ROOT)}[/dim]")
     return 0
 
 
 def cmd_eval_explain(args: argparse.Namespace) -> int:
-    items = evaluate.load_items()
-    by_id = {item["id"]: item for item in items}
+    items, by_id = _eval_items(args)
     baseline_answers = evaluate.load_baseline_answers()
     out = evaluate.run_path("explain")
     # Recorded before the run, so later edits or commits cannot be mistaken for the version that ran.
     meta = {"version": evaluate.git_version(), "model": config.GENERATION_MODEL, "embedding_model": args.model,
-            "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS}
+            "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS,
+            "sets": args.sets, "split": args.split, "questions": len(items)}
     with index.connect() as conn:
+        _check_gold(conn, items)
         retriever = Retriever(conn, chunking=args.chunking, model=args.model)
         # Load both models before timing anything; cold starts are reported separately.
         retriever.search("暖機", k=1)
@@ -193,7 +216,7 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
                                     retrieval_query=evaluate.retrieval_query(item, by_id))
             gold = set(item["gold_sections"])
             record = {
-                "id": item["id"], "type": item["type"], "answer": result.answer,
+                "id": item["id"], "set": item["set"], "type": item["type"], "answer": result.answer,
                 "chars": len(result.answer), "total_seconds": round(result.total_seconds, 2),
                 "retrieval_seconds": round(result.retrieval_seconds, 2),
                 "generation_seconds": round(result.generation_seconds, 2),
@@ -218,11 +241,18 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
     seconds = [r["total_seconds"] for r in records]
     chars = [r["chars"] for r in records]
-    base_seconds = [i["baseline"]["seconds"] for i in items]
-    base_chars = [i["baseline"]["answer_chars"] for i in items]
     console.print(f"\nAI TA: median {statistics.median(seconds):.1f} s, {statistics.median(chars):.0f} 字; "
                   f"citations ok {sum(r['citations_ok'] for r in records)}/{len(records)}")
-    console.print(f"Baseline: median {statistics.median(base_seconds):.1f} s, {statistics.median(base_chars):.0f} 字")
+    for name in dict.fromkeys(r["set"] for r in records):
+        subset = [r for r in records if r["set"] == name]
+        median_seconds = statistics.median(r["total_seconds"] for r in subset)
+        median_chars = statistics.median(r["chars"] for r in subset)
+        console.print(f"  {name}: {len(subset)} questions, median {median_seconds:.1f} s, {median_chars:.0f} 字")
+    measured = [i for i in items if i.get("baseline")]  # only midterm-baseline has the plane-time answers
+    if measured:
+        console.print(f"Baseline on {len(measured)} questions: "
+                      f"median {statistics.median(i['baseline']['seconds'] for i in measured):.1f} s, "
+                      f"{statistics.median(i['baseline']['answer_chars'] for i in measured):.0f} 字")
     typed = [(r, by_id[r["id"]]["type"]) for r in records if by_id[r["id"]]["type"] != "follow-up" and r["route"]]
     if typed:
         console.print(f"Routing matched the labelled type on {sum(r['route'] == t for r, t in typed)}/{len(typed)}"
@@ -264,17 +294,30 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("progress", help="mastery, review dates, and weak points").set_defaults(func=cmd_progress)
 
-    p = sub.add_parser("eval-retrieval", help="compare embedding models and chunkings on the eval set")
+    p = sub.add_parser("eval-retrieval", help="score retrieval against the gold sections of the eval set")
     p.add_argument("--k", type=int, default=5)
     p.add_argument("--chunkings", default="heading,fixed", help="comma-separated: heading, fixed")
+    p.add_argument("--methods", default="keyword,vector,hybrid", help="comma-separated: keyword, vector, hybrid")
+    p.add_argument("--models", default=config.EMBEDDING_MODEL,
+                   help="comma-separated embedding models, or 'all' for the step-5 candidates (must be installed)")
+    _add_eval_options(p)
     p.set_defaults(func=cmd_eval_retrieval)
 
     p = sub.add_parser("eval-explain", help="run the eval set through explanation mode and measure it")
     p.add_argument("--k", type=int, default=4)
     p.add_argument("--chunking", default="heading", choices=["heading", "fixed"])
     p.add_argument("--model", default=config.EMBEDDING_MODEL, help="embedding model")
+    _add_eval_options(p)
     p.set_defaults(func=cmd_eval_explain)
     return parser
+
+
+def _add_eval_options(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--set", dest="sets", action="append", choices=list(evaluate.EVAL_SETS),
+                   help="question set; repeat for several (default: every set)")
+    p.add_argument("--split", default="dev", choices=evaluate.SPLITS, help="dev (default), test, or all")
+    p.add_argument("--allow-test", action="store_true",
+                   help="required for test or all: the test split waits for step 7 (decision 0006)")
 
 
 def main(argv: list[str] | None = None) -> int:

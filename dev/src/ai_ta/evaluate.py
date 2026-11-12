@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -13,7 +14,14 @@ from typing import Any
 from . import config, index
 from .retrieve import Retriever
 
-BASELINE_SET = config.EVAL_DIR / "midterm-baseline.jsonl"
+# Question sets (decision 0006). practice holds past exam questions, so it stays local and may be missing.
+EVAL_SETS = {
+    "midterm-baseline": config.EVAL_DIR / "midterm-baseline.jsonl",
+    "self-check": config.EVAL_DIR / "self-check.jsonl",
+    "traps": config.EVAL_DIR / "traps.jsonl",
+    "practice": config.EVAL_DIR / "private" / "practice.jsonl",
+}
+SPLITS = ("dev", "test", "all")
 BASELINE_ANSWERS = config.EVAL_DIR / "private" / "baseline-answers.jsonl"
 RUNS_DIR = config.EVAL_DIR / "runs"
 
@@ -40,8 +48,20 @@ def load_baseline_answers(path: Path = BASELINE_ANSWERS) -> dict[str, str]:
     return {row["id"]: row["answer"] for row in map(json.loads, path.read_text(encoding="utf-8").splitlines())}
 
 
-def load_items(path: Path = BASELINE_SET) -> list[dict[str, Any]]:
+def load_set(name: str) -> list[dict[str, Any]]:
+    """One question set; empty when its file is missing (practice on a fresh clone)."""
+    path = EVAL_SETS[name]
+    if not path.exists():
+        return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def load_items(sets: Iterable[str] = tuple(EVAL_SETS), split: str = "dev") -> list[dict[str, Any]]:
+    """Questions of the given sets in one split. Development uses dev; test waits for step 7 (decision 0006)."""
+    if split not in SPLITS:
+        raise ValueError(f"split must be one of {SPLITS}, not {split!r}")
+    items = [item for name in sets for item in load_set(name)]
+    return [item for item in items if split == "all" or item["split"] == split]
 
 
 def question_text(item: dict[str, Any]) -> str:
@@ -73,11 +93,19 @@ def _gold_spans(conn: sqlite3.Connection) -> dict[str, tuple[str, int, int]]:
     return {c.chunk_id: (c.file, c.start, c.end) for c in index.load_chunks(conn, "heading").values()}
 
 
+def missing_gold(conn: sqlite3.Connection, items: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """Gold sections that are no longer in the index, for example after a note heading was renamed."""
+    known = _gold_spans(conn)
+    missing = {item["id"]: [g for g in item["gold_sections"] if g not in known] for item in items}
+    return {item_id: gold for item_id, gold in missing.items() if gold}
+
+
 def score_retrieval(conn: sqlite3.Connection, items: list[dict[str, Any]], *, chunking: str, method: str,
-                    model: str, k: int = 5) -> RetrievalScore:
+                    model: str, k: int = 5, by_id: dict[str, dict[str, Any]] | None = None) -> RetrievalScore:
+    """by_id must hold the turns that follow-up questions follow, when they are not among items."""
     retriever = Retriever(conn, chunking=chunking, model=model)
     spans = _gold_spans(conn)
-    by_id = {item["id"]: item for item in items}
+    by_id = by_id or {item["id"]: item for item in items}
     hits, reciprocal, misses = 0, 0.0, []
     for item in items:
         gold = [spans[g] for g in item["gold_sections"]]

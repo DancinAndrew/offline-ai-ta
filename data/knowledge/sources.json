@@ -14,6 +14,7 @@
   "exclude_heading_keywords": [
     "自我檢查",
     "逐字稿",
+    "聽成",
     "查證來源",
     "接著讀",
     "來源與整合"
@@ -22,6 +23,6 @@
     "Midterm Review/00_複習路線圖.md, 01_課堂範圍與來源地圖.md": "Study plans and source maps, not course content; not matched by the include patterns.",
     "Midterm Review/08_*": "Practice and past exam questions with worked solutions. Kept out of the index because they are a private evaluation source; indexing them would put the answer key next to the questions.",
     "Week3/Bonus Practice/*": "A coding-session transcript and a reflection, not course content; not matched by the include patterns.",
-    "exclude_heading_keywords": "Self-check sections hold questions with answers that may be used for evaluation. Transcript corrections, source lists, and the midterm notes' 接著讀 (read next) and 來源與整合 (sources) sections are navigation, not content; in a first test they were retrieved and cited as if they supported an answer."
+    "exclude_heading_keywords": "Self-check sections hold questions with answers that may be used for evaluation. Transcript corrections (逐字稿 sections and 聽成 → 實際對照 tables of misheard terms), source lists, and the midterm notes' 接著讀 (read next) and 來源與整合 (sources) sections are navigation, not content; in a first test they were retrieved and cited as if they supported an answer."
   }
 }
