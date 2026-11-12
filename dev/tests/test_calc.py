@@ -56,6 +56,11 @@ class ProgramTest(unittest.TestCase):
         self.assertEqual(run("M = [[1, 2], [3, 4]]; sum(M.T)")[-1].value, [3.0, 7.0])  # row totals
         self.assertAlmostEqual(evaluate("sum(sum([[1, 2], [3, 4]]))"), 10.0)
 
+    def test_rows_columns_and_ranges(self):
+        self.assertEqual(run("M = [[1, 2], [3, 4]]; M[:, 0]")[-1].value, [1.0, 3.0])
+        self.assertEqual(run("M = [[1, 2], [3, 4]]; M[1, :]")[-1].value, [3.0, 4.0])
+        self.assertEqual(run("v = [1, 2, 3, 4]; v[1:3]")[-1].value, [2.0, 3.0])
+
     def test_print_is_tolerated(self):
         self.assertAlmostEqual(run("x = 2; print(x * 3)")[-1].value, 6.0)
 

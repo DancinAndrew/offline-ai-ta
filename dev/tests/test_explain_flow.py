@@ -77,17 +77,20 @@ class ComputeTest(unittest.TestCase):
         self.assertEqual((result.value, result.rewrites, result.error, result.seconds), (6.0, 0, None, 2.0))
         self.assertIn("formula", writer.sent[0][1]["content"])  # the notes are in view when writing
 
-    def test_a_rejected_program_goes_back_once_with_the_error(self):
-        writer = FakeWriter(("for i in [1]: x = i", False), ("x = 2; x * 3", False))
+    def test_a_fixable_error_goes_back_once_with_the_error(self):
+        writer = FakeWriter(("y * 3", False), ("y = 2; y * 3", False))
         result = compute("q", [], write=writer)
-        self.assertIn("迴圈", writer.sent[1][-1]["content"])
-        self.assertEqual(writer.sent[1][-2], {"role": "assistant", "content": "for i in [1]: x = i"})
+        self.assertIn("y 還沒定義", writer.sent[1][-1]["content"])
+        self.assertEqual(writer.sent[1][-2], {"role": "assistant", "content": "y * 3"})
         self.assertEqual((result.value, result.rewrites, result.seconds), (6.0, 1, 4.0))
 
-    def test_a_cut_off_program_is_asked_to_be_shorter(self):
-        writer = FakeWriter(("a = (1 +", True), ("1 + 1", False))
-        compute("q", [], write=writer)
-        self.assertIn(TRUNCATED, writer.sent[1][-1]["content"])
+    def test_loops_decisions_and_cut_off_programs_are_not_rewritten(self):
+        for program, truncated, reason in (("for i in [1]: x = i", False, "迴圈"), ("x = 1 if 2 > 1 else 0", False, "if"),
+                                           ("a = (1 +", True, TRUNCATED)):
+            writer = FakeWriter((program, truncated))
+            result = compute("q", [], write=writer)
+            self.assertEqual((len(writer.sent), result.rewrites, result.steps), (1, 0, []), program)
+            self.assertIn(reason, result.error)
 
     def test_a_second_failure_is_reported_not_hidden(self):
         result = compute("q", [], write=FakeWriter(("y + 1", False), ("z + 1", False)))

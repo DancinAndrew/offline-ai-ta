@@ -56,7 +56,15 @@ NORMALIZE = str.maketrans({"^": "**", "×": "*", "−": "-", "÷": "/", "（": "
 
 
 class CalcError(ValueError):
-    """The program is not plain arithmetic, or it cannot be evaluated."""
+    """The program is not plain arithmetic, or it cannot be evaluated.
+
+    rewritable is False for programs built around loops or decisions: in the dev runs a rewrite
+    never turned those into a straight-line calculation, it only doubled the wait.
+    """
+
+    def __init__(self, message: str, rewritable: bool = True):
+        super().__init__(message)
+        self.rewritable = rewritable
 
 
 @dataclass(frozen=True)
@@ -132,9 +140,9 @@ def _run_statement(node: ast.stmt, text: str, env: dict[str, Value]) -> Step:
             expr = expr.args[0]  # tolerated: print(x) shows x
         return Step("", ast.get_source_segment(text, expr) or "", _plain(_check(_eval(expr, env))))
     if isinstance(node, (ast.For, ast.While)):
-        raise CalcError(f"第 {node.lineno} 行：不能用迴圈，請把每一步寫成一行「名稱 = 算式」")
+        raise CalcError(f"第 {node.lineno} 行：不能用迴圈，請把每一步寫成一行「名稱 = 算式」", rewritable=False)
     if isinstance(node, ast.If):
-        raise CalcError(f"第 {node.lineno} 行：不能用 if，比較大小留給回答")
+        raise CalcError(f"第 {node.lineno} 行：不能用 if，比較大小留給回答", rewritable=False)
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         raise CalcError(f"第 {node.lineno} 行：不能 import，可以直接用 log、sqrt、softmax 這些函式")
     raise CalcError(f"第 {node.lineno} 行：只能寫「名稱 = 算式」，不能用 {type(node).__name__}")
@@ -186,23 +194,25 @@ def _eval(node: ast.expr, env: dict[str, Value]) -> Value:
     if isinstance(node, ast.Attribute) and node.attr == "T":
         return np.asarray(_eval(node.value, env)).T  # transpose, the one attribute programs commonly use
     if isinstance(node, ast.IfExp):
-        raise CalcError("不能用「a if 條件 else b」；ReLU 請用 relu(x)，取較大的用 max(a, b)")
+        raise CalcError("不能用「a if 條件 else b」；ReLU 請用 relu(x)，取較大的用 max(a, b)", rewritable=False)
     if isinstance(node, (ast.ListComp, ast.GeneratorExp)):
-        raise CalcError("不能用 [… for …]；函式可以直接用在整個向量上，例如 exp(v)、relu(v)")
+        raise CalcError("不能用 [… for …]；函式可以直接用在整個向量上，例如 exp(v)、relu(v)", rewritable=False)
     if isinstance(node, ast.Compare):
-        raise CalcError("不能比大小；把每個值算出來，判斷留給回答")
+        raise CalcError("不能比大小；把每個值算出來，判斷留給回答", rewritable=False)
     raise CalcError(f"算式裡不能用 {type(node).__name__}；只能用數字、[ ]、+ - * / ** @ 和允許的函式")
 
 
-def _index(node: ast.expr) -> int | tuple[int, ...]:
-    """Only fixed whole-number positions, such as v[0], v[-1] or W[0, 1]."""
+def _index(node: ast.expr) -> int | slice | tuple:
+    """Fixed whole-number positions and ranges, such as v[0], v[-1], W[0, 1], M[:, 0] or v[1:3]."""
     if isinstance(node, ast.Tuple):
-        return tuple(_index(item) for item in node.elts)  # type: ignore[misc]
+        return tuple(_index(item) for item in node.elts)
+    if isinstance(node, ast.Slice):
+        return slice(*(None if part is None else _index(part) for part in (node.lower, node.upper, node.step)))
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
         return -_index(node.operand)  # type: ignore[operator]
     if isinstance(node, ast.Constant) and isinstance(node.value, int) and not isinstance(node.value, bool):
         return node.value
-    raise CalcError("[ ] 裡的位置只能寫整數，例如 v[0]（從 0 開始數）")
+    raise CalcError("[ ] 裡的位置只能寫整數或範圍，例如 v[0]、M[:, 0]（從 0 開始數）")
 
 
 def _check(value: Value) -> Value:

@@ -61,7 +61,7 @@ def route(question: str) -> tuple[Route | None, float]:
 # Calculation programs: deterministic, and capped so a runaway answer is cut off early.
 CALC_OPTIONS = {"temperature": 0.0, "top_p": 0.8, "top_k": 20, "num_predict": 400, "seed": 7}
 FENCE = re.compile(r"^\s*```[A-Za-z]*\s*\n|\n\s*```\s*$")
-TRUNCATED = "計算太長，被截斷了。請寫短一點：用向量和短名稱，不要註解。"
+TRUNCATED = "計算太長，超過長度上限被截斷"
 
 
 @dataclass(frozen=True)
@@ -90,24 +90,26 @@ def write_program(messages: list[dict[str, str]]) -> tuple[str, float, bool]:
 
 
 def compute(question: str, passages: list[Chunk], write: ProgramWriter = write_program) -> Calculation:
-    """The model writes the arithmetic, Python runs it; a rejected program goes back once with the error.
+    """The model writes the arithmetic, Python runs it; a fixable error goes back once for a rewrite.
 
     Its own step, so the routing call stays short; in the routing JSON, long programs were cut off
     and took the whole routing down with them (sc-07), and the notes' formulas were not in view.
     """
     messages = [{"role": "system", "content": harness_text("skills/calc/SKILL.md")},
                 {"role": "user", "content": f"筆記段落：\n\n{passages_block(passages)}\n\n題目：{question}"}]
-    seconds, error, program = 0.0, "", ""
+    seconds, error, program, attempt = 0.0, "", "", 0
     for attempt in range(2):
         program, took, truncated = write(messages)
         seconds += took
         try:
             return Calculation(program, calc.run(program), None, attempt, seconds)
         except calc.CalcError as exc:
-            error = TRUNCATED if truncated else str(exc)
+            error, rewritable = (TRUNCATED, False) if truncated else (str(exc), exc.rewritable)
+        if not rewritable:
+            break
         messages += [{"role": "assistant", "content": program},
                      {"role": "user", "content": f"計算器算不出來：{error}\n請照規則重寫整段計算，只輸出計算。"}]
-    return Calculation(program, [], error, 1, seconds)
+    return Calculation(program, [], error, attempt, seconds)
 
 
 def calc_passage(steps: list[calc.Step]) -> Chunk:
