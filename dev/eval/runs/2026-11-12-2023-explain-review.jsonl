@@ -1,0 +1,31 @@
+{"meta": {"run": "2026-11-12-2023-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-12-1208-explain.jsonl", "harness": "改動 4 精修版（commit 3f8f387；評估程式 a39a259）", "latency_note": "機器仍比 1118 慢：沒改的確認理解步驟每秒 6.9 token（1118 是 11.7），回答步驟 6.3（1118 是 9.6）。秒數不能和 1118 直接比。", "summary": {"dev 全部": {"正確": 28, "部分正確": 5, "錯誤": 1, "題數": 34, "正確_wilson95": [0.66, 0.92], "正確或部分正確_wilson95": [0.85, 0.99]}, "midterm-baseline": {"正確": 11, "部分正確": 4, "錯誤": 1, "題數": 16, "正確_wilson95": [0.44, 0.86], "正確或部分正確_wilson95": [0.72, 0.99]}, "新增題（self-check、traps、practice）": {"正確": 17, "部分正確": 1, "錯誤": 0, "題數": 18, "正確_wilson95": [0.74, 0.99], "正確或部分正確_wilson95": [0.82, 1.0]}, "self-check": {"正確": 10, "部分正確": 0, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
+{"id": "mb-04", "verdict": "正確", "failure": [], "notes": "公式、先驗小的影響、兩個條件機率不能互換都有；這次沒寫 0.21。"}
+{"id": "mb-05", "verdict": "正確", "failure": [], "notes": "和 1208 完全相同。"}
+{"id": "mb-06", "verdict": "部分正確", "failure": ["教學", "檢索"], "notes": "定義、公式、21% 都對，仍沒有小學生比喻。"}
+{"id": "mb-07", "verdict": "正確", "failure": [], "notes": "比較各類後驗取最大，並附垃圾郵件 0.974 的例子。"}
+{"id": "mb-08", "verdict": "正確", "failure": [], "notes": "和 1208 完全相同。"}
+{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "mb-10", "verdict": "正確", "failure": [], "notes": "例子 (1,2)、(4,6) 和平方的影響都對。"}
+{"id": "mb-11", "verdict": "正確", "failure": [], "notes": "p 可以大於 2；結尾多一句「筆記未提及……」。"}
+{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度、1 − cosθ、排序方向相反、講義公式其實是相似度都有。"}
+{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索", "生成"], "notes": "和前兩輪相同：沒說 CART 一律二元切分。"}
+{"id": "mb-14", "verdict": "正確", "failure": [], "notes": "這次說「筆記沒有禁止重複使用同一特徵，只要能再降低不純度就可以；分不開就停止」，和參考一致。和這次改動無關，是前後不穩定。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-15", "verdict": "部分正確", "failure": ["教學"], "notes": "說明子樹可以選不同特徵，但仍沒直接回答「不一定都用心情」，又把上一題的二元樹問題一起回答。"}
+{"id": "mb-16", "verdict": "錯誤", "failure": ["生成"], "notes": "又把「特徵選過就不能重複使用」判成對；三輪都在同一個誤解上出錯。"}
+{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "計算器算出 0.970951；說明它和段落裡三類例子的差別，沒有質疑結果。1208 的困惑沒有再出現。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-18", "verdict": "部分正確", "failure": ["教學"], "notes": "和前兩輪相同：熵的說明沒有負號，沒逐個符號說明。"}
+{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "最小化 FPR 等於最大化 TNR；TPR 和 FNR 才互補。"}
+{"id": "sc-01", "verdict": "正確", "failure": [], "notes": "f、g 的說明正確；結尾多一句和題目無關的「筆記未提及……」。"}
+{"id": "sc-04", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "sc-07", "verdict": "正確", "failure": ["生成"], "notes": "計算器的程式用了 if 判斷，被擋下後照新規則不重寫（白花 44.9 秒）；回答照筆記寫，內容正確。"}
+{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "2,976 對 784、0.21 都有；結尾附註讓程式誤記成拒答。"}
+{"id": "sc-14", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同，分別對應 TPR 和 TNR。"}
+{"id": "sc-20", "verdict": "正確", "failure": [], "notes": "Pearson 只量直線、U 形會互相抵銷；這次沒提互資訊。"}
+{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "cross-entropy ≥ 熵、相同時才相等、訓練時下降。"}
+{"id": "sc-27", "verdict": "正確", "failure": [], "notes": "內容和前兩輪相同；結尾附註讓程式誤記成拒答。"}
+{"id": "sc-30", "verdict": "正確", "failure": [], "notes": "理由正確、寫出 transform 的寫法，這次沒有多餘附註。"}
+{"id": "tr-01", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "tr-04", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "tr-07", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
+{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "和前兩輪相同。"}
