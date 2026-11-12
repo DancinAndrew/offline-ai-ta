@@ -70,4 +70,5 @@
 
 - `eval-retrieval` 和 `eval-explain` 加上 `--set`、`--split`、`--allow-test` 三個選項，執行紀錄也記下用了哪些題組和切分。
 - 筆記標題改了、正確段落在索引裡找不到時，評估程式直接報錯，不會默默算成沒檢索到。
+- practice 的回答會帶出原題，所以它的逐題紀錄另存在 `dev/eval/private/runs/`，公開的紀錄只留題號。
 - baseline 和 traps 的參考答案仍要我核對；practice 的要點也是 Claude 整理的，最好一起看。pr-p42 的講義第二層漏加偏差，參考要點把講義的數字和加上偏差的數字都列出來。

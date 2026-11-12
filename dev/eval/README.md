@@ -12,6 +12,7 @@
 | `private/practice.jsonl` | 10 | `Midterm Review/08_練習題` 的歷屆原題，參考要點從詳解整理 | 否 |
 | `private/baseline-answers.jsonl` | — | `midterm-baseline` 的基準回答全文，給評估時的「固定前文」和盲評用 | 否 |
 | `runs/` | — | 每次評估的結果：設定、程式版本（Git commit）、逐題紀錄 | 是 |
+| `private/runs/` | — | 私有題組（練習題）的逐題紀錄。回答會帶出原題，所以和公開紀錄分開存；公開紀錄的 `kept_private` 列出移到這裡的題號 | 否 |
 
 從講義或練習題直接摘錄的題目不放公開的檔案，放 `private/`。
 

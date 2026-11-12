@@ -45,6 +45,11 @@ class EvalSetTests(unittest.TestCase):
             self.assertTrue(item["misconceptions"], item["id"])
             self.assertIn(item["grading_label"], LABELS)
 
+    def test_only_sets_under_private_count_as_private(self):
+        self.assertTrue(evaluate.is_private({"set": "practice"}))
+        for name in ("midterm-baseline", "self-check", "traps"):
+            self.assertFalse(evaluate.is_private({"set": name}))
+
     def test_loading_defaults_to_dev(self):
         self.assertTrue(all(item["split"] == "dev" for item in evaluate.load_items()))
         self.assertTrue(all(item["split"] == "test" for item in evaluate.load_items(split="test")))

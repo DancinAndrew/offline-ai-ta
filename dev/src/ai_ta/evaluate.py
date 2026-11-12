@@ -14,15 +14,16 @@ from typing import Any
 from . import config, index
 from .retrieve import Retriever
 
+PRIVATE_DIR = config.EVAL_DIR / "private"  # git-ignored
 # Question sets (decision 0006). practice holds past exam questions, so it stays local and may be missing.
 EVAL_SETS = {
     "midterm-baseline": config.EVAL_DIR / "midterm-baseline.jsonl",
     "self-check": config.EVAL_DIR / "self-check.jsonl",
     "traps": config.EVAL_DIR / "traps.jsonl",
-    "practice": config.EVAL_DIR / "private" / "practice.jsonl",
+    "practice": PRIVATE_DIR / "practice.jsonl",
 }
 SPLITS = ("dev", "test", "all")
-BASELINE_ANSWERS = config.EVAL_DIR / "private" / "baseline-answers.jsonl"
+BASELINE_ANSWERS = PRIVATE_DIR / "baseline-answers.jsonl"
 RUNS_DIR = config.EVAL_DIR / "runs"
 
 
@@ -54,6 +55,11 @@ def load_set(name: str) -> list[dict[str, Any]]:
     if not path.exists():
         return []
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def is_private(item: dict[str, Any]) -> bool:
+    """Answers to private questions restate them (past exam numbers), so their run records stay local too."""
+    return PRIVATE_DIR in EVAL_SETS[item["set"]].parents
 
 
 def load_items(sets: Iterable[str] = tuple(EVAL_SETS), split: str = "dev") -> list[dict[str, Any]]:

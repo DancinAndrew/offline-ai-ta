@@ -6,6 +6,7 @@ import argparse
 import json
 import statistics
 from collections import Counter
+from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -235,10 +236,14 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
             records.append(record)
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
                           f"cited {record['cited']}  ok={record['citations_ok']}")
-    with out.open("w", encoding="utf-8") as f:
-        f.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
-        for record in records:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    private = [r for r in records if evaluate.is_private(by_id[r["id"]])]
+    public = [r for r in records if not evaluate.is_private(by_id[r["id"]])]
+    _write_run(out, {**meta, "kept_private": [r["id"] for r in private]}, public)
+    if private:
+        private_out = evaluate.PRIVATE_DIR / "runs" / out.name
+        _write_run(private_out, meta, private)
+        console.print(f"[dim]{len(private)} answers to private questions saved in "
+                      f"{private_out.relative_to(config.REPO_ROOT)}[/dim]")
     seconds = [r["total_seconds"] for r in records]
     chars = [r["chars"] for r in records]
     console.print(f"\nAI TA: median {statistics.median(seconds):.1f} s, {statistics.median(chars):.0f} 字; "
@@ -259,6 +264,14 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
                       " non-follow-up questions")
     console.print(f"[dim]saved {out.relative_to(config.REPO_ROOT)}[/dim]")
     return 0
+
+
+def _write_run(path: Path, meta: dict, records: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps({"meta": meta}, ensure_ascii=False) + "\n")
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def build_parser() -> argparse.ArgumentParser:
