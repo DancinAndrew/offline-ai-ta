@@ -62,6 +62,8 @@ def cmd_ask(args: argparse.Namespace) -> int:
         console.print(f"  {line}")
     if not result.check.ok:
         console.print("[yellow]出處標記不完整，請對照筆記確認。[/yellow]")
+    if result.calculation and result.calculation.error:
+        console.print("[yellow]計算器沒有算出結果，回答裡的數字沒有經過程式驗算。[/yellow]")
     kind = result.route.type if result.route else "未判斷"
     console.print(f"[dim]題型 {kind}，{result.total_seconds:.1f} 秒，{len(result.answer)} 字[/dim]")
     return 0
@@ -216,6 +218,7 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
             result = explain.answer(evaluate.question_text(item), retriever, k=args.k, history=history,
                                     retrieval_query=evaluate.retrieval_query(item, by_id))
             gold = set(item["gold_sections"])
+            calc_run = result.calculation
             record = {
                 "id": item["id"], "set": item["set"], "type": item["type"], "answer": result.answer,
                 "chars": len(result.answer), "total_seconds": round(result.total_seconds, 2),
@@ -229,13 +232,19 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
                 "history_turns": len(chain),
                 "route": result.route.type if result.route else None,
                 "route_seconds": round(result.route_seconds, 2),
-                "expression": result.route.expression if result.route else "",
-                "calc_value": result.calc_value,
+                "calc_program": calc_run.program if calc_run else "",
+                "calc_seconds": round(calc_run.seconds, 2) if calc_run else 0.0,
+                "calc_value": calc_run.value if calc_run else None,
+                "calc_steps": [step.text() for step in calc_run.steps] if calc_run else [],
+                "calc_error": calc_run.error if calc_run else None,
+                "calc_rewrites": calc_run.rewrites if calc_run else 0,
                 "claims": [c.model_dump() for c in result.claim_check.claims] if result.claim_check else None,
             }
             records.append(record)
+            calc_note = "" if not calc_run else f"  calc {'ok' if calc_run.steps else 'failed'}" + (
+                " after rewrite" if calc_run.rewrites else "")
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
-                          f"cited {record['cited']}  ok={record['citations_ok']}")
+                          f"cited {record['cited']}  ok={record['citations_ok']}{calc_note}")
     private = [r for r in records if evaluate.is_private(by_id[r["id"]])]
     public = [r for r in records if not evaluate.is_private(by_id[r["id"]])]
     _write_run(out, {**meta, "kept_private": [r["id"] for r in private]}, public)

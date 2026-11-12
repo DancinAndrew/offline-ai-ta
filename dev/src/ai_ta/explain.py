@@ -1,14 +1,16 @@
 """Explanation mode: route the question, retrieve note sections, answer with numbered citations.
 
 The model never calls a tool. The program runs the steps: a short routing call says what kind
-of question it is, Python computes any arithmetic, the program retrieves the passages, and the
-model only writes a short answer that cites them.
+of question it is, the program retrieves the passages, a calculation question gets its own step
+where the model writes the arithmetic and Python computes it (a rejected program goes back once
+with the error), and the model only writes a short answer that cites the passages.
 """
 
 from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -31,7 +33,6 @@ QuestionType = Literal["concept", "comparison", "check-understanding", "calculat
 class Route(BaseModel):
     type: QuestionType
     claims: list[str] = Field(default_factory=list)
-    expression: str = ""
 
 
 def harness_text(*names: str) -> str:
@@ -57,8 +58,61 @@ def route(question: str) -> tuple[Route | None, float]:
         return None, 0.0
 
 
-def calc_passage(expression: str, value: float) -> Chunk:
-    return Chunk("calc", "calc", "", ("程式計算結果",), 0, 1, 0, 0, f"{expression} = {value:.6g}", ())
+# Calculation programs: deterministic, and capped so a runaway answer is cut off early.
+CALC_OPTIONS = {"temperature": 0.0, "top_p": 0.8, "top_k": 20, "num_predict": 400, "seed": 7}
+FENCE = re.compile(r"^\s*```[A-Za-z]*\s*\n|\n\s*```\s*$")
+TRUNCATED = "計算太長，被截斷了。請寫短一點：用向量和短名稱，不要註解。"
+
+
+@dataclass(frozen=True)
+class Calculation:
+    program: str               # what ran, or the last attempt
+    steps: list[calc.Step]     # empty when the calculator could not run it
+    error: str | None
+    rewrites: int              # 1 when the first program was rejected and rewritten
+    seconds: float             # time spent writing the program(s)
+
+    @property
+    def value(self) -> float | None:
+        """The last result when it is a single number."""
+        last = self.steps[-1].value if self.steps else None
+        return last if isinstance(last, float) else None
+
+
+ProgramWriter = Callable[[list[dict[str, str]]], tuple[str, float, bool]]
+
+
+def write_program(messages: list[dict[str, str]]) -> tuple[str, float, bool]:
+    """The program text, the seconds it took, and whether it hit the token limit."""
+    result = llm.chat(messages, options=CALC_OPTIONS, purpose="calc")
+    truncated = result.output_tokens is not None and result.output_tokens >= CALC_OPTIONS["num_predict"]
+    return FENCE.sub("", result.content).strip(), result.wall_seconds, truncated
+
+
+def compute(question: str, passages: list[Chunk], write: ProgramWriter = write_program) -> Calculation:
+    """The model writes the arithmetic, Python runs it; a rejected program goes back once with the error.
+
+    Its own step, so the routing call stays short; in the routing JSON, long programs were cut off
+    and took the whole routing down with them (sc-07), and the notes' formulas were not in view.
+    """
+    messages = [{"role": "system", "content": harness_text("skills/calc/SKILL.md")},
+                {"role": "user", "content": f"筆記段落：\n\n{passages_block(passages)}\n\n題目：{question}"}]
+    seconds, error, program = 0.0, "", ""
+    for attempt in range(2):
+        program, took, truncated = write(messages)
+        seconds += took
+        try:
+            return Calculation(program, calc.run(program), None, attempt, seconds)
+        except calc.CalcError as exc:
+            error = TRUNCATED if truncated else str(exc)
+        messages += [{"role": "assistant", "content": program},
+                     {"role": "user", "content": f"計算器算不出來：{error}\n請照規則重寫整段計算，只輸出計算。"}]
+    return Calculation(program, [], error, 1, seconds)
+
+
+def calc_passage(steps: list[calc.Step]) -> Chunk:
+    text = "\n".join(step.text() for step in steps)
+    return Chunk("calc", "calc", "", ("程式計算結果",), 0, 1, 0, 0, text, ())
 
 
 class ClaimVerdict(BaseModel):
@@ -138,7 +192,7 @@ class ExplainResult:
     generation_seconds: float
     route: Route | None = None
     route_seconds: float = 0.0
-    calc_value: float | None = None
+    calculation: Calculation | None = None
     claim_check: ClaimCheck | None = None
     prompt_tokens: int | None = None
     output_tokens: int | None = None
@@ -146,7 +200,8 @@ class ExplainResult:
 
     @property
     def total_seconds(self) -> float:
-        return self.route_seconds + self.retrieval_seconds + self.generation_seconds
+        calc_seconds = self.calculation.seconds if self.calculation else 0.0
+        return self.route_seconds + calc_seconds + self.retrieval_seconds + self.generation_seconds
 
 
 def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dict[str, str]] | None = None,
@@ -166,18 +221,16 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
         except llm.StructuredOutputError:
             pass  # fall back to a normal explanation below
 
-    passages: list[Chunk] = []
-    calc_value = None
-    if routed and routed.type == "calculation" and routed.expression.strip():
-        try:
-            calc_value = calc.evaluate(routed.expression)
-            passages.append(calc_passage(routed.expression.strip(), calc_value))
-        except calc.CalcError:
-            pass
-
     started = time.perf_counter()
     hits = retriever.search(retrieval_query or question, k=k)
     retrieval_seconds = time.perf_counter() - started
+
+    passages: list[Chunk] = []
+    calculation = None
+    if routed and routed.type == "calculation":
+        calculation = compute(question, [hit.chunk for hit in hits])
+        if calculation.steps:
+            passages.append(calc_passage(calculation.steps))
     passages += [hit.chunk for hit in hits]
 
     messages = [{"role": "system", "content": system_prompt()}, *(history or [])]
@@ -200,7 +253,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
                                         f"段落裡沒有答案就寫「{REFUSAL}」。"},
         ]
     return ExplainResult(question, attempts[-1], passages, hits, check, len(attempts) - 1, retrieval_seconds,
-                         generation_seconds, route=routed, route_seconds=route_seconds, calc_value=calc_value,
+                         generation_seconds, route=routed, route_seconds=route_seconds, calculation=calculation,
                          prompt_tokens=prompt_tokens, output_tokens=output_tokens, attempts=attempts)
 
 
