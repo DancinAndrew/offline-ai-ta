@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import subprocess
 from collections.abc import Iterable
@@ -68,6 +69,15 @@ def load_items(sets: Iterable[str] = tuple(EVAL_SETS), split: str = "dev") -> li
         raise ValueError(f"split must be one of {SPLITS}, not {split!r}")
     items = [item for name in sets for item in load_set(name)]
     return [item for item in items if split == "all" or item["split"] == split]
+
+
+GAP_REMARK = re.compile(r"[^。\n]*(?:筆記|段落)[^。\n]{0,12}(?:沒有提到|未提及|沒寫|未提供|沒有說明|沒有直接說明|並未提及|"
+                        r"未說明|沒有提供|沒有給出)[^。\n]*")
+
+
+def gap_remarks(answer: str) -> list[str]:
+    """Sentences saying the notes leave something out. Most were about things nobody asked (change 5)."""
+    return [m.group(0).strip() for m in GAP_REMARK.finditer(answer)]
 
 
 def question_text(item: dict[str, Any]) -> str:

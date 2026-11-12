@@ -62,6 +62,11 @@ class EvalSetTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 cli._eval_items(args)
 
+    def test_gap_remarks_are_found_sentence_by_sentence(self):
+        answer = "熵是 0.971 [1]。筆記未提及具體的量化條件。分母是 0.2075 [2]。段落沒有說明其他版本 [3]。"
+        self.assertEqual(evaluate.gap_remarks(answer), ["筆記未提及具體的量化條件", "段落沒有說明其他版本 [3]"])
+        self.assertEqual(evaluate.gap_remarks("熵是 0.971 [1]。"), [])
+
     def test_gold_sections_missing_from_the_index_are_reported(self):
         conn = index.connect(Path(":memory:"))
         index.rebuild(conn, [Chunk("note.md#A", "heading", "note.md", ("Note", "A"), 2, 1, 0, 10, "text", ())])

@@ -216,6 +216,8 @@ def _explain_record(item: dict, retriever: Retriever, args: argparse.Namespace, 
         "retrieved_gold": [h.chunk.chunk_id in gold for h in result.hits],
         "cited": list(result.check.cited), "citations_ok": result.check.ok,
         "refused": result.check.refused, "retries": result.retries,
+        # The check flow lists 筆記沒寫 verdicts on purpose, so only explanations are counted.
+        "gap_remarks": [] if result.claim_check else evaluate.gap_remarks(result.answer),
         "history_turns": len(chain),
         "route": result.route.type if result.route else None,
         "route_seconds": round(result.route_seconds, 2),
@@ -286,7 +288,11 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
     seconds = [r["total_seconds"] for r in records]
     chars = [r["chars"] for r in records]
     console.print(f"\nAI TA: median {statistics.median(seconds):.1f} s, {statistics.median(chars):.0f} 字; "
-                  f"citations ok {sum(r['citations_ok'] for r in records)}/{len(records)}")
+                  f"citations ok {sum(r['citations_ok'] for r in records)}/{len(records)}; "
+                  f"refusals {sum(r['refused'] for r in records)}")
+    explanations = [r for r in records if not r["claims"]]
+    console.print(f"Gap remarks (「筆記沒有提到……」) in {sum(bool(r['gap_remarks']) for r in explanations)}"
+                  f"/{len(explanations)} explanation answers")
     for name in dict.fromkeys(r["set"] for r in records):
         subset = [r for r in records if r["set"] == name]
         median_seconds = statistics.median(r["total_seconds"] for r in subset)

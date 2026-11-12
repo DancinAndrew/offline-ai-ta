@@ -58,6 +58,12 @@ class CitationTest(unittest.TestCase):
         self.assertFalse(check_citations("熵是 0.971。", passage_count=4).ok)
         self.assertTrue(check_citations("筆記裡沒有提到這個。", passage_count=4).ok)
 
+    def test_a_closing_remark_about_a_gap_is_not_a_refusal(self):
+        check = check_citations("熵是 0.971 [1]。筆記裡沒有提到其他例子。", passage_count=4)
+        self.assertEqual((check.refused, check.ok), (False, True))
+        # Without citations it still fails: the remark does not excuse the rest of the answer.
+        self.assertFalse(check_citations("熵是 0.971。筆記裡沒有提到其他例子。", passage_count=4).ok)
+
 
 class PracticeHelpersTest(unittest.TestCase):
     def test_give_up_detection(self):

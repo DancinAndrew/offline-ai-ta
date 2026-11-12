@@ -175,11 +175,19 @@ class CitationCheck:
         return not self.invalid and (bool(self.cited) or self.refused)
 
 
+SENTENCE_END = re.compile(r"[。\n]")
+
+
+def is_refusal(answer: str) -> bool:
+    """A refusal says so up front (guardrail 3); a later remark about a detail the notes leave out is not one."""
+    return REFUSAL in SENTENCE_END.split(answer.strip(), maxsplit=1)[0]
+
+
 def check_citations(answer: str, passage_count: int) -> CitationCheck:
     numbers = [int(n) for n in CITATION.findall(answer)]
     cited = tuple(sorted(set(numbers)))
     invalid = tuple(n for n in cited if not 1 <= n <= passage_count)
-    return CitationCheck(cited, invalid, REFUSAL in answer)
+    return CitationCheck(cited, invalid, is_refusal(answer))
 
 
 @dataclass
