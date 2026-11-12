@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -191,68 +192,97 @@ def cmd_eval_retrieval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _explain_record(item: dict, retriever: Retriever, args: argparse.Namespace, by_id: dict[str, dict],
+                    baseline_answers: dict[str, str]) -> dict:
+    history = []
+    chain, parent = [], item.get("follow_up_of")
+    while parent:
+        chain.insert(0, by_id[parent])
+        parent = by_id[parent].get("follow_up_of")
+    for earlier in chain:  # fixed prefix: the original turns as they happened (decision 0003)
+        history += [{"role": "user", "content": earlier["question_as_asked"]},
+                    {"role": "assistant", "content": baseline_answers.get(earlier["id"], "")}]
+    result = explain.answer(evaluate.question_text(item), retriever, k=args.k, history=history,
+                            retrieval_query=evaluate.retrieval_query(item, by_id))
+    gold = set(item["gold_sections"])
+    calc_run = result.calculation
+    return {
+        "id": item["id"], "set": item["set"], "type": item["type"], "answer": result.answer,
+        "chars": len(result.answer), "total_seconds": round(result.total_seconds, 2),
+        "retrieval_seconds": round(result.retrieval_seconds, 2),
+        "generation_seconds": round(result.generation_seconds, 2),
+        "prompt_tokens": result.prompt_tokens, "output_tokens": result.output_tokens,
+        "retrieved": [h.chunk.chunk_id for h in result.hits],
+        "retrieved_gold": [h.chunk.chunk_id in gold for h in result.hits],
+        "cited": list(result.check.cited), "citations_ok": result.check.ok,
+        "refused": result.check.refused, "retries": result.retries,
+        "history_turns": len(chain),
+        "route": result.route.type if result.route else None,
+        "route_seconds": round(result.route_seconds, 2),
+        "calc_program": calc_run.program if calc_run else "",
+        "calc_seconds": round(calc_run.seconds, 2) if calc_run else 0.0,
+        "calc_value": calc_run.value if calc_run else None,
+        "calc_steps": [step.text() for step in calc_run.steps] if calc_run else [],
+        "calc_error": calc_run.error if calc_run else None,
+        "calc_rewrites": calc_run.rewrites if calc_run else 0,
+        "claims": [c.model_dump() for c in result.claim_check.claims] if result.claim_check else None,
+    }
+
+
+OLLAMA_RETRY_PAUSE = 10  # seconds before retrying a question after Ollama dropped the request
+
+
 def cmd_eval_explain(args: argparse.Namespace) -> int:
     items, by_id = _eval_items(args)
     baseline_answers = evaluate.load_baseline_answers()
     out = evaluate.run_path("explain")
+    private_out = evaluate.PRIVATE_DIR / "runs" / out.name
     # Recorded before the run, so later edits or commits cannot be mistaken for the version that ran.
     meta = {"version": evaluate.git_version(), "model": config.GENERATION_MODEL, "embedding_model": args.model,
             "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS,
             "sets": args.sets, "split": args.split, "questions": len(items)}
+    kept_private = [item["id"] for item in items if evaluate.is_private(item)]
+    # Every answer is saved as soon as it exists, so a crash partway through keeps what already ran.
+    _write_run(out, {**meta, "kept_private": kept_private}, [])
+    if kept_private:
+        _write_run(private_out, meta, [])
+    records = []
     with index.connect() as conn:
         _check_gold(conn, items)
         retriever = Retriever(conn, chunking=args.chunking, model=args.model)
         # Load both models before timing anything; cold starts are reported separately.
         retriever.search("暖機", k=1)
         llm.chat([{"role": "user", "content": "請回覆「好」。"}], options={"num_predict": 5}, purpose="warmup")
-        records = []
         for item in items:
-            history = []
-            chain, parent = [], item.get("follow_up_of")
-            while parent:
-                chain.insert(0, by_id[parent])
-                parent = by_id[parent].get("follow_up_of")
-            for earlier in chain:  # fixed prefix: the original turns as they happened (decision 0003)
-                history += [{"role": "user", "content": earlier["question_as_asked"]},
-                            {"role": "assistant", "content": baseline_answers.get(earlier["id"], "")}]
-            result = explain.answer(evaluate.question_text(item), retriever, k=args.k, history=history,
-                                    retrieval_query=evaluate.retrieval_query(item, by_id))
-            gold = set(item["gold_sections"])
-            calc_run = result.calculation
-            record = {
-                "id": item["id"], "set": item["set"], "type": item["type"], "answer": result.answer,
-                "chars": len(result.answer), "total_seconds": round(result.total_seconds, 2),
-                "retrieval_seconds": round(result.retrieval_seconds, 2),
-                "generation_seconds": round(result.generation_seconds, 2),
-                "prompt_tokens": result.prompt_tokens, "output_tokens": result.output_tokens,
-                "retrieved": [h.chunk.chunk_id for h in result.hits],
-                "retrieved_gold": [h.chunk.chunk_id in gold for h in result.hits],
-                "cited": list(result.check.cited), "citations_ok": result.check.ok,
-                "refused": result.check.refused, "retries": result.retries,
-                "history_turns": len(chain),
-                "route": result.route.type if result.route else None,
-                "route_seconds": round(result.route_seconds, 2),
-                "calc_program": calc_run.program if calc_run else "",
-                "calc_seconds": round(calc_run.seconds, 2) if calc_run else 0.0,
-                "calc_value": calc_run.value if calc_run else None,
-                "calc_steps": [step.text() for step in calc_run.steps] if calc_run else [],
-                "calc_error": calc_run.error if calc_run else None,
-                "calc_rewrites": calc_run.rewrites if calc_run else 0,
-                "claims": [c.model_dump() for c in result.claim_check.claims] if result.claim_check else None,
-            }
+            try:
+                record = _explain_record(item, retriever, args, by_id, baseline_answers)
+            except llm.OllamaError as exc:
+                console.print(f"[yellow]{item['id']}: Ollama dropped the request, retrying once: {exc}[/yellow]")
+                time.sleep(OLLAMA_RETRY_PAUSE)
+                try:
+                    record = _explain_record(item, retriever, args, by_id, baseline_answers)
+                    record["ollama_retry"] = str(exc)  # its time may include reloading the model
+                except llm.OllamaError as again:
+                    record = {"id": item["id"], "set": item["set"], "type": item["type"], "error": str(again)}
             records.append(record)
-            calc_note = "" if not calc_run else f"  calc {'ok' if calc_run.steps else 'failed'}" + (
-                " after rewrite" if calc_run.rewrites else "")
+            with (private_out if evaluate.is_private(item) else out).open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            if "error" in record:
+                console.print(f"[red]{item['id']}: failed twice, recorded as an error[/red]")
+                continue
+            calc_run_note = "" if not record["calc_program"] else (
+                f"  calc {'ok' if record['calc_steps'] else 'failed'}" + (" after rewrite" if record["calc_rewrites"] else ""))
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
-                          f"cited {record['cited']}  ok={record['citations_ok']}{calc_note}")
-    private = [r for r in records if evaluate.is_private(by_id[r["id"]])]
-    public = [r for r in records if not evaluate.is_private(by_id[r["id"]])]
-    _write_run(out, {**meta, "kept_private": [r["id"] for r in private]}, public)
-    if private:
-        private_out = evaluate.PRIVATE_DIR / "runs" / out.name
-        _write_run(private_out, meta, private)
-        console.print(f"[dim]{len(private)} answers to private questions saved in "
+                          f"cited {record['cited']}  ok={record['citations_ok']}{calc_run_note}")
+    if kept_private:
+        console.print(f"[dim]{len(kept_private)} answers to private questions saved in "
                       f"{private_out.relative_to(config.REPO_ROOT)}[/dim]")
+    failed = [r["id"] for r in records if "error" in r]
+    records = [r for r in records if "error" not in r]
+    if failed:
+        console.print(f"[red]{len(failed)} questions failed: {' '.join(failed)}[/red]")
+    if not records:
+        return 1
     seconds = [r["total_seconds"] for r in records]
     chars = [r["chars"] for r in records]
     console.print(f"\nAI TA: median {statistics.median(seconds):.1f} s, {statistics.median(chars):.0f} 字; "
