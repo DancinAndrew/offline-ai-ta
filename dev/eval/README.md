@@ -64,5 +64,6 @@ PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta eval-explain --set traps --set s
 
 - `--set`：只跑指定的題組，可以重複；預設全部。沒有 `private/practice.jsonl` 時自動略過。
 - `--split`：`dev`（預設）、`test`、`all`；後兩個要加 `--allow-test`。
+- `--ids`：只跑指定的題目（逗號分隔），用在只影響部分題目的改動，例如只改確認理解的判斷時只重跑那幾題。題目必須在所選的切分裡。
 - 正確段落在索引裡找不到時（例如筆記標題改了），程式會列出是哪幾題並停下，先修題組再跑。
 - 每題做完就寫進紀錄檔，中途中斷也會保留已完成的題目。Ollama 中斷請求時，程式等 10 秒重試一次，那題會標 `ollama_retry`（秒數可能包含重新載入模型）。
