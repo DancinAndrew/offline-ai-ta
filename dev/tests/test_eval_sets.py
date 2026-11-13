@@ -62,6 +62,14 @@ class EvalSetTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 cli._eval_items(args)
 
+    def test_ids_pick_questions_within_the_split(self):
+        args = cli.build_parser().parse_args(["eval-explain", "--ids", "mb-16,tr-01"])
+        items, _ = cli._eval_items(args)
+        self.assertEqual(sorted(item["id"] for item in items), ["mb-16", "tr-01"])
+        test_item = next(item["id"] for item in evaluate.load_items(split="test"))
+        with self.assertRaises(SystemExit):  # a test question cannot be picked from the dev split
+            cli._eval_items(cli.build_parser().parse_args(["eval-explain", "--ids", test_item]))
+
     def test_gap_remarks_are_found_sentence_by_sentence(self):
         answer = "熵是 0.971 [1]。筆記未提及具體的量化條件。分母是 0.2075 [2]。段落沒有說明其他版本 [3]。"
         self.assertEqual(evaluate.gap_remarks(answer), ["筆記未提及具體的量化條件", "段落沒有說明其他版本 [3]"])

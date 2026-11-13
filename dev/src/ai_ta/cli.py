@@ -150,6 +150,12 @@ def _eval_items(args: argparse.Namespace) -> tuple[list[dict], dict[str, dict]]:
     if missing:
         console.print(f"[yellow]skipped sets without a local file: {', '.join(missing)}[/yellow]")
     items = evaluate.load_items(args.sets, args.split)
+    if args.ids:
+        wanted = args.ids.split(",")
+        unknown = sorted(set(wanted) - {item["id"] for item in items})
+        if unknown:
+            raise SystemExit(f"Not in the chosen sets and split: {', '.join(unknown)}")
+        items = [item for item in items if item["id"] in wanted]
     if not items:
         raise SystemExit("No questions in the chosen sets and split.")
     return items, {item["id"]: item for item in evaluate.load_items(args.sets, "all")}
@@ -374,6 +380,7 @@ def _add_eval_options(p: argparse.ArgumentParser) -> None:
     p.add_argument("--set", dest="sets", action="append", choices=list(evaluate.EVAL_SETS),
                    help="question set; repeat for several (default: every set)")
     p.add_argument("--split", default="dev", choices=evaluate.SPLITS, help="dev (default), test, or all")
+    p.add_argument("--ids", help="comma-separated question ids, to rerun only the questions a change can affect")
     p.add_argument("--allow-test", action="store_true",
                    help="required for test or all: the test split waits for step 7 (decision 0006)")
 
