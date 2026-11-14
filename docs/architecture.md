@@ -119,11 +119,20 @@ Ollama：qwen3.5:9b ＋ qwen3-embedding:0.6b（OLLAMA_NO_CLOUD=1）
 
 ## 7. 離線驗收清單
 
-- [ ] Ollama 設 `OLLAMA_NO_CLOUD=1`（或 `server.json`），只允許本機模型。
-- [ ] 嵌入模型事先下載到本機。
-- [ ] Gradio 設 `GRADIO_ANALYTICS_ENABLED=False`，不開 share，只用內建字型。
+用 `dev/tools/offline_check.py` 跑，報告存在 `data/logs/`。2026-11-14 的結果：
+
+- [x] Ollama 用 `server.json` 關閉雲端：重啟後的紀錄寫著「Ollama cloud disabled: true」。
+- [x] 嵌入模型事先下載到本機。
+- [ ] Gradio 設 `GRADIO_ANALYTICS_ENABLED=False`，不開 share，只用內建字型（第 6 步）。
 - [ ] 斷網後完整跑一輪：搜尋、解釋（附出處）、出題、批改。
+  - 連著網路監看時，四種模式都正常。
+  - 關掉 Wi-Fi 的那一輪還沒跑。這一輪要使用者自己操作，因為網路一關，Claude Code 也會斷線。
 - [ ] 跑的同時監看網路，確認沒有對外連線。
+  - AI TA 自己的程序沒有任何對外連線。
+  - Ollama 自己有兩條連線，都不在推論的路徑上：
+    - App 每小時檢查更新，連到 ollama.com 的更新服務和 GitHub 的下載伺服器。應該可以在 Ollama 的設定裡關掉自動更新。
+    - 伺服器定期抓「模型推薦清單」，連到 ollama.com。`disable_ollama_cloud` 關不掉這項，也找不到正式的開關。
+  - 斷網那一輪可以確認：少了這兩條連線，使用不受影響。
 
 ## 8. 延後或不做
 
