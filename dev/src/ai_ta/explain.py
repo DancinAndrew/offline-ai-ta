@@ -255,7 +255,8 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
 
     passages: list[Chunk] = []
     calculation = None
-    if routed and routed.type == "calculation":
+    # A question without any digit has nothing to compute; the calc step would invent numbers (mb-19).
+    if routed and routed.type == "calculation" and any(ch.isdigit() for ch in question):
         calculation = compute(question, [hit.chunk for hit in hits])
         if calculation.steps:
             passages.append(calc_passage(calculation.steps))
