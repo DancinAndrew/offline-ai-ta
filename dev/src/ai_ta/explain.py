@@ -133,14 +133,32 @@ MAX_CHECK_PASSAGES = 6
 
 
 def retrieve_for_claims(retriever: Retriever, query: str, claims: list[str], k: int) -> list[Hit]:
-    """Retrieve for the whole message and for each claim, so every claim gets its own evidence."""
-    hits: dict[str, Hit] = {}
-    for hit in retriever.search(query, k=k):
-        hits.setdefault(hit.chunk.chunk_id, hit)
-    for claim in claims:
-        for hit in retriever.search(claim, k=2):
-            hits.setdefault(hit.chunk.chunk_id, hit)
-    return list(hits.values())[:MAX_CHECK_PASSAGES]
+    """Passages for the claim check, shared out so the question's own hits cannot crowd the claims out.
+
+    Order: each claim's best passage, the question's two best, each claim's next passage, then the
+    rest of the question's. Filling with the question's hits first dropped gold sections at the cap
+    (16 of 19 kept on the dev claim-check questions; change 7).
+    """
+    question = retriever.search(query, k=k)
+    per_claim = [retriever.search(claim, k=3) for claim in claims]
+    chosen: dict[str, Hit] = {}
+
+    def take(hit: Hit | None) -> None:
+        if hit is not None and len(chosen) < MAX_CHECK_PASSAGES:
+            chosen.setdefault(hit.chunk.chunk_id, hit)
+
+    def next_new(hits: list[Hit]) -> Hit | None:
+        return next((hit for hit in hits if hit.chunk.chunk_id not in chosen), None)
+
+    for hits in per_claim:
+        take(next_new(hits))
+    for hit in question[:2]:
+        take(hit)
+    for hits in per_claim:
+        take(next_new(hits))
+    for hit in question[2:]:
+        take(hit)
+    return list(chosen.values())
 
 
 def check_claims(question: str, claims: list[str], passages: list[Chunk]) -> tuple[ClaimCheck, float]:

@@ -6,8 +6,8 @@
 import unittest
 
 from ai_ta import calc
-from ai_ta.explain import (REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict, calc_passage, check_citations, compute,
-                           render_check, retrieve_for_claims)
+from ai_ta.explain import (MAX_CHECK_PASSAGES, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict, calc_passage,
+                           check_citations, compute, render_check, retrieve_for_claims)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
 
@@ -30,7 +30,15 @@ class CheckFlowTest(unittest.TestCase):
     def test_claims_get_their_own_passages_without_duplicates(self):
         retriever = FakeRetriever({"q": ["a", "b"], "claim 1": ["b", "c"], "claim 2": ["d", "a"]})
         hits = retrieve_for_claims(retriever, "q", ["claim 1", "claim 2"], k=4)
-        self.assertEqual([h.chunk.chunk_id for h in hits], ["a", "b", "c", "d"])
+        self.assertEqual([h.chunk.chunk_id for h in hits], ["b", "d", "a", "c"])
+
+    def test_the_question_cannot_crowd_out_the_claims(self):
+        retriever = FakeRetriever({"q": ["q1", "q2", "q3", "q4"],
+                                   **{f"claim {n}": [f"c{n}a", f"c{n}b"] for n in range(1, 5)}})
+        hits = [h.chunk.chunk_id for h in retrieve_for_claims(retriever, "q", [f"claim {n}" for n in range(1, 5)], k=4)]
+        self.assertEqual(len(hits), MAX_CHECK_PASSAGES)
+        self.assertTrue(all(f"c{n}a" in hits for n in range(1, 5)))  # every claim keeps its best passage
+        self.assertEqual(hits[4:], ["q1", "q2"])
 
     def test_rendered_check_lists_every_verdict_and_passes_the_citation_check(self):
         judged = ClaimCheck(summary="三點對，一點要改。", claims=[
