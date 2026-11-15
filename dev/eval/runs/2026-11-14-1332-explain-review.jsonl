@@ -1,0 +1,31 @@
+{"meta": {"run": "2026-11-14-1332-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-12-2106-explain.jsonl", "harness": "改動 1–7（commit 1c62fb6）；Ollama 2026-11-14 13:27 重啟後（0.40.10，雲端已關閉）的第一輪", "role_in_series": "B 類修正的比較基準", "latency_note": "機器仍比 1118 慢（回答步驟每秒 7.2 token，1118 是 9.6）。", "summary": {"dev 全部": {"正確": 27, "部分正確": 7, "錯誤": 0, "題數": 34, "正確_wilson95": [0.63, 0.9], "正確或部分正確_wilson95": [0.9, 1.0]}, "midterm-baseline": {"正確": 11, "部分正確": 5, "錯誤": 0, "題數": 16, "正確_wilson95": [0.44, 0.86], "正確或部分正確_wilson95": [0.81, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 16, "部分正確": 2, "錯誤": 0, "題數": 18, "正確_wilson95": [0.67, 0.97], "正確或部分正確_wilson95": [0.82, 1.0]}, "self-check": {"正確": 9, "部分正確": 1, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
+{"id": "mb-04", "verdict": "正確", "failure": [], "notes": "公式、先驗小的影響、recall／precision 的對應、兩個條件機率不能互換。"}
+{"id": "mb-05", "verdict": "正確", "failure": [], "notes": "和改動 7 的兩輪相同。"}
+{"id": "mb-06", "verdict": "部分正確", "failure": ["教學", "檢索"], "notes": "開頭說明檢索到的段落沒有小學生比喻（記為拒答），再講定義和公式；筆記其實有小學生版，是檢索沒找到。"}
+{"id": "mb-07", "verdict": "正確", "failure": [], "notes": "比較各類後驗取最大，附垃圾郵件 0.974 的例子；最後一句扯到錄取題的先驗，略多餘。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-08", "verdict": "正確", "failure": [], "notes": "和改動 7 的兩輪相同。"}
+{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
+{"id": "mb-10", "verdict": "正確", "failure": [], "notes": "例子 (1,2)、(4,6) 和平方的影響，引用筆記原句。"}
+{"id": "mb-11", "verdict": "正確", "failure": [], "notes": "p ≥ 1 所以可以大於 2。"}
+{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度和 1 − cosθ 的差別、排序方向相反、講義公式其實是相似度。"}
+{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索", "生成"], "notes": "兩個說法都判對，仍沒說 CART 一律二元切分。"}
+{"id": "mb-14", "verdict": "正確", "failure": [], "notes": "不同子樹各自挑特徵、兩邊也可能挑到同一個；同一組資料再用同一特徵分不出新東西。沒提數字特徵可以換門檻再切。452 字。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-15", "verdict": "部分正確", "failure": ["教學"], "notes": "說明子樹各自挑特徵，但仍用停止條件推出「資訊耗盡就不能再選」，也沒直接回答「不一定都用心情」。"}
+{"id": "mb-16", "verdict": "部分正確", "failure": ["生成"], "notes": "「理論上切乾淨」改判需要修正，並指出衝突標籤長再深也無法全純；但題型判斷又把「不能重複選」合進正確的說法，整句判對。", "vs_previous": "錯誤 → 部分正確"}
+{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "計算器算出 0.970951，並寫出代入過程。"}
+{"id": "mb-18", "verdict": "部分正確", "failure": ["生成"], "notes": "說明了 p_c、v、權重和 IG 的意思；但把熵說成「隨機選一隻猜錯的機率」，那是 Gini 的意思，是錯的。"}
+{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "回答正確；但題型判斷把這題判成計算，計算步驟自己編了 FN、TNR 等數字（回答沒有用到）。"}
+{"id": "sc-01", "verdict": "正確", "failure": [], "notes": "f、g 的說明正確。"}
+{"id": "sc-04", "verdict": "正確", "failure": [], "notes": "錯的偽標籤一輪輪累積；最後一句「需要反覆用不同標註資料訓練」意思不清。"}
+{"id": "sc-07", "verdict": "正確", "failure": ["生成"], "notes": "計算器仍失敗（不重寫）；回答照筆記寫，內容正確。"}
+{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "784、2,976、3,760 和 0.21 都對。"}
+{"id": "sc-14", "verdict": "正確", "failure": [], "notes": "p=1 曼哈頓、p=2 歐式。"}
+{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同，對應 TPR 和 TNR。"}
+{"id": "sc-20", "verdict": "正確", "failure": [], "notes": "Pearson 只量直線、U 形抵銷、y=x² 例子。"}
+{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "cross-entropy ≥ 熵、相同時才相等、訓練時下降。"}
+{"id": "sc-27", "verdict": "部分正確", "failure": ["生成"], "notes": "Copy-on-Write、正確寫法都對；但寫成「Age 欄的 177 個缺值一個都沒補到」，把筆記另一個例子的欄位和數字混進 Fare 的回答。結尾還有一句附註。", "vs_previous": "正確 → 部分正確"}
+{"id": "sc-30", "verdict": "正確", "failure": [], "notes": "用測試資料自己的 min、max 會讓縮放不一致，正確寫法是 transform。", "vs_previous": "部分正確 → 正確"}
+{"id": "tr-01", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
+{"id": "tr-04", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
+{"id": "tr-07", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
+{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
