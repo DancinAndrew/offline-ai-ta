@@ -191,7 +191,8 @@ def cmd_eval_retrieval(args: argparse.Namespace) -> int:
         table.add_row(s.chunking, s.method, model, f"{s.recall_at_k:.2f}", f"{s.mrr:.2f}", " ".join(s.misses))
     console.print(table)
     out = evaluate.run_path("retrieval", ".json")
-    out.write_text(json.dumps({"version": evaluate.git_version(), "k": args.k, "sets": args.sets, "split": args.split,
+    out.write_text(json.dumps({"version": evaluate.git_version(), "ollama": llm.ollama_version(), "k": args.k,
+                               "sets": args.sets, "split": args.split,
                                "questions": len(items), "scores": [s.__dict__ for s in scores]},
                               ensure_ascii=False, indent=2), encoding="utf-8")
     console.print(f"[dim]saved {out.relative_to(config.REPO_ROOT)}[/dim]")
@@ -246,7 +247,8 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
     out = evaluate.run_path("explain")
     private_out = evaluate.PRIVATE_DIR / "runs" / out.name
     # Recorded before the run, so later edits or commits cannot be mistaken for the version that ran.
-    meta = {"version": evaluate.git_version(), "model": config.GENERATION_MODEL, "embedding_model": args.model,
+    meta = {"version": evaluate.git_version(), "ollama": llm.ollama_version(), "model": config.GENERATION_MODEL,
+            "embedding_model": args.model,
             "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS,
             "sets": args.sets, "split": args.split, "questions": len(items)}
     kept_private = [item["id"] for item in items if evaluate.is_private(item)]

@@ -43,6 +43,15 @@ def _post(path: str, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
     return response.json()
 
 
+def ollama_version(timeout: float = 5) -> str:
+    """The running Ollama's version, recorded with each eval run: an upgrade can change outputs (N6)."""
+    try:
+        response = requests.get(f"{config.OLLAMA_URL}/api/version", timeout=timeout)
+        return response.json().get("version", "unknown")
+    except (requests.RequestException, ValueError):
+        return "unknown"
+
+
 def embed(texts: list[str], model: str, *, batch_size: int = 16, timeout: float = 600) -> list[list[float]]:
     vectors: list[list[float]] = []
     for i in range(0, len(texts), batch_size):
