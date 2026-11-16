@@ -25,7 +25,8 @@ CITATION = re.compile(r"\[(\d+)\]")
 REFUSAL = "筆記裡沒有提到"
 
 # A fixed seed makes eval runs repeatable, so a change in results comes from a change in the harness.
-OPTIONS = {"temperature": 0.3, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0, "num_predict": 800, "seed": 7}
+OPTIONS = {"temperature": config.EXPLAIN_TEMPERATURE, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0,
+           "num_predict": 800, "seed": 7}
 
 QuestionType = Literal["concept", "comparison", "check-understanding", "calculation", "formula", "fact"]
 
