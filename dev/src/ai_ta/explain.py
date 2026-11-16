@@ -333,8 +333,12 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
                             f"段落裡沒有答案就寫「{REFUSAL}」。")
             reasons.append("citations")
         if found:
-            feedback.append(f"這個回答的計算有問題：{'；'.join(found)}。請重寫：[1] 是程式用這一題題目給的數字算好的結果，"
-                            "數字照抄 [1] 已經填好數字的算式，不要自己重算，也不要說無法回答。每句句尾標段落編號。")
+            # The last results are spelled out: an answer kept multiplying the given "yes" probabilities after
+            # being told its numbers were not the calculator's.
+            results = "；".join(step.text() for step in calculation.steps[-2:])
+            feedback.append(f"這個回答的計算有問題：{'；'.join(found)}。[1] 算出的結果是：{results}。"
+                            "請重寫：[1] 是程式用這一題題目給的數字算好的結果，數字照抄 [1] 已經填好數字的算式，"
+                            "不要自己重算，也不要說無法回答。每句句尾標段落編號。")
             reasons += found
         messages += [{"role": "assistant", "content": result.content}, {"role": "user", "content": "\n".join(feedback)}]
     return ExplainResult(question, attempts[-1], passages, hits, check, len(attempts) - 1, retrieval_seconds,
