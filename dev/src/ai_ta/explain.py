@@ -254,6 +254,7 @@ class ExplainResult:
     prompt_tokens: int | None = None
     output_tokens: int | None = None
     attempts: list[str] = field(default_factory=list)
+    retry_reasons: list[str] = field(default_factory=list)  # what the checks found in each rejected attempt
 
     @property
     def total_seconds(self) -> float:
@@ -295,24 +296,62 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     messages.append({"role": "user", "content": f"筆記段落：\n\n{passages_block(passages)}\n\n問題：{question}"})
 
     attempts: list[str] = []
+    reasons: list[str] = []
     generation_seconds = 0.0
     prompt_tokens = output_tokens = None
+    computed = calculation is not None and bool(calculation.steps) and not calculation.partial
     for _ in range(2):
         result = llm.chat(messages, options=OPTIONS, purpose="explain")
         generation_seconds += result.wall_seconds
         prompt_tokens, output_tokens = result.prompt_tokens, result.output_tokens
         attempts.append(result.content)
         check = check_citations(result.content, len(passages))
-        if check.ok:
+        found = calc_problems(result.content, question, passages) if computed else []
+        if check.ok and not found:
             break
-        messages += [
-            {"role": "assistant", "content": result.content},
-            {"role": "user", "content": f"這個回答缺少段落編號，或用了不存在的編號。請重寫：每句句尾標 [1]–[{len(passages)}]；"
-                                        f"段落裡沒有答案就寫「{REFUSAL}」。"},
-        ]
+        if len(attempts) == 2:
+            break
+        feedback = []
+        if not check.ok:
+            feedback.append(f"這個回答缺少段落編號，或用了不存在的編號。請重寫：每句句尾標 [1]–[{len(passages)}]；"
+                            f"段落裡沒有答案就寫「{REFUSAL}」。")
+            reasons.append("citations")
+        if found:
+            feedback.append(f"這個回答的計算有問題：{'；'.join(found)}。請重寫：[1] 是程式用這一題題目給的數字算好的結果，"
+                            "數字照抄 [1] 已經填好數字的算式，不要自己重算，也不要說無法回答。每句句尾標段落編號。")
+            reasons += found
+        messages += [{"role": "assistant", "content": result.content}, {"role": "user", "content": "\n".join(feedback)}]
     return ExplainResult(question, attempts[-1], passages, hits, check, len(attempts) - 1, retrieval_seconds,
                          generation_seconds, route=routed, route_seconds=route_seconds, calculation=calculation,
-                         prompt_tokens=prompt_tokens, output_tokens=output_tokens, attempts=attempts)
+                         prompt_tokens=prompt_tokens, output_tokens=output_tokens, attempts=attempts,
+                         retry_reasons=reasons)
+
+
+DECIMAL = re.compile(r"(?<![\d.])\d+\.\d+")
+CANNOT_ANSWER = re.compile(r"無法(?:直接)?(?:回答|計算|算出|求出)|沒辦法(?:回答|計算)")
+
+
+def calc_problems(answer: str, question: str, passages: list[Chunk]) -> list[str]:
+    """What an answer to a fully computed question got wrong (change 11).
+
+    With the calculator's result in [1], answers still opened with "cannot be answered", or redid the
+    arithmetic from a notes example and wrote numbers that appear nowhere: not in the calculator's
+    lines, the question, or the notes. A rounded copy of a known number is fine.
+    """
+    found = []
+    first = SENTENCE_END.split(answer.strip(), maxsplit=1)[0]
+    if REFUSAL in first or CANNOT_ANSWER.search(first):
+        found.append("開頭說無法回答，但 [1] 已經用題目的數字算好了")
+    known = [float(n) for n in DECIMAL.findall("\n".join([question] + [p.text for p in passages]))]
+    stray = [n for n in dict.fromkeys(DECIMAL.findall(answer)) if not _rounds_from(n, known)]
+    if stray:
+        found.append(f"{'、'.join(stray)} 不是程式算出的數字，題目和筆記裡也沒有")
+    return found
+
+
+def _rounds_from(token: str, known: list[float]) -> bool:
+    value, places = float(token), len(token.split(".")[1])
+    return any(abs(value - k) <= 0.5 * 10 ** -places + 1e-9 for k in known)
 
 
 def sources(result: ExplainResult) -> list[str]:

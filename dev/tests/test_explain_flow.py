@@ -7,7 +7,8 @@ import unittest
 
 from ai_ta import calc
 from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
-                           calc_passage, check_citations, compute, render_check, retrieve_for_claims)
+                           calc_passage, calc_problems, check_citations, compute, render_check,
+                           retrieve_for_claims)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
 
@@ -121,6 +122,20 @@ class ComputeTest(unittest.TestCase):
         result = compute("q", [], write=FakeWriter(("a = 2\nb = a * 3\nc = (b +", True)))
         self.assertEqual(([s.name for s in result.steps], result.error), (["a", "b"], TRUNCATED))
         self.assertTrue(result.partial)
+
+    def test_calc_answers_flag_numbers_the_calculator_never_produced(self):
+        passages = [calc_passage(calc.run("prior = 0.45\nf = [0.9, 0.3, 0.4]\nscore = prior * prod(f)\npost = score / 0.0717"))]
+        question = "先驗 0.45，會軟的機率 0.9，算後驗。"
+        self.assertEqual(calc_problems("分數是 0.0486，後驗約 0.678 [1]。先驗 0.45 [1]。", question, passages), [])
+        found = calc_problems("分數是 0.1323，後驗約 0.852 [1]。", question, passages)
+        self.assertEqual(len(found), 1)
+        self.assertIn("0.1323、0.852", found[0])
+
+    def test_calc_answers_must_not_open_with_a_refusal(self):
+        passages = [calc_passage(calc.run("a = 0.3 * 0.5"))]
+        for answer in ("根據提供的筆記，無法直接回答此題的計算結果，因為 [1] 不同。", f"{REFUSAL}這兩個機率 [1]。"):
+            self.assertIn("無法回答", calc_problems(answer, "q", passages)[0], answer)
+        self.assertEqual(calc_problems("結果是 0.15 [1]。筆記沒有說無法計算的情況 [1]。", "q", passages), [])
 
     def test_a_partial_calc_passage_says_where_it_stopped(self):
         steps = calc.run("a = 2\nb = a * 3")

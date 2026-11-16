@@ -224,7 +224,7 @@ def _explain_record(item: dict, retriever: Retriever, args: argparse.Namespace, 
         "retrieved": [h.chunk.chunk_id for h in result.hits],
         "retrieved_gold": [h.chunk.chunk_id in gold for h in result.hits],
         "cited": list(result.check.cited), "citations_ok": result.check.ok,
-        "refused": result.check.refused, "retries": result.retries,
+        "refused": result.check.refused, "retries": result.retries, "retry_reasons": result.retry_reasons,
         # The check flow lists 筆記沒寫 verdicts on purpose, so only explanations are counted.
         "gap_remarks": [] if result.claim_check else evaluate.gap_remarks(result.answer),
         "history_turns": len(chain),
