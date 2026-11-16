@@ -102,8 +102,9 @@ ProgramWriter = Callable[[list[dict[str, str]]], tuple[str, float, bool]]
 
 def write_program(messages: list[dict[str, str]]) -> tuple[str, float, bool]:
     """The program text, the seconds it took, and whether it hit the token limit."""
-    result = llm.chat(messages, options=CALC_OPTIONS, purpose="calc")
-    truncated = result.output_tokens is not None and result.output_tokens >= CALC_OPTIONS["num_predict"]
+    think, options = llm.step_options("calc", CALC_OPTIONS)
+    result = llm.chat(messages, think=think, options=options, purpose="calc")
+    truncated = result.output_tokens is not None and result.output_tokens >= options["num_predict"]
     return FENCE.sub("", result.content).strip(), result.wall_seconds, truncated
 
 
@@ -337,7 +338,8 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     computed = calculation is not None and bool(calculation.steps) and not calculation.partial
     found: list[str] = []
     for attempt in range(3):
-        result = llm.chat(messages, options=OPTIONS, purpose="explain")
+        think, options = llm.step_options("explain", OPTIONS)
+        result = llm.chat(messages, think=think, options=options, purpose="explain")
         generation_seconds += result.wall_seconds
         prompt_tokens, output_tokens = result.prompt_tokens, result.output_tokens
         attempts.append(result.content)

@@ -6,7 +6,7 @@
 import unittest
 from unittest.mock import patch
 
-from ai_ta import calc, explain, llm
+from ai_ta import calc, config, explain, llm
 from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
                            answer_prompt, calc_passage, calc_problems, check_citations, compute, render_check,
                            retrieve_for_claims, search_passages)
@@ -181,6 +181,16 @@ class KidLevelTest(unittest.TestCase):
         self.assertEqual([h.chunk.chunk_id for h in search_passages(none, "q", "小學生", 4)], ["a", "b", "c", "d"])
 
 
+class ThinkStepsTest(unittest.TestCase):
+    def test_only_listed_steps_think_with_their_own_sampling(self):
+        greedy = {"temperature": 0.0, "num_predict": 400}
+        with patch.object(config, "THINK_STEPS", frozenset({"check"})):
+            self.assertEqual(llm.step_options("calc", greedy), (False, greedy))
+            think, options = llm.step_options("check", {"temperature": 0.0, "num_predict": 1200})
+        self.assertTrue(think)
+        self.assertEqual((options["temperature"], options["num_predict"]), (0.6, 1200 + config.THINK_EXTRA_TOKENS))
+
+
 class AnswerRetryTest(unittest.TestCase):
     """The answer loop with a fake model: how many attempts each kind of problem gets."""
 
@@ -190,7 +200,7 @@ class AnswerRetryTest(unittest.TestCase):
         computed = explain.Calculation("a = 0.3 * 0.5", calc.run("a = 0.3 * 0.5"), None, 0, 1.0)
         queue = list(replies)
 
-        def fake_chat(messages, options=None, purpose=""):
+        def fake_chat(messages, options=None, purpose="", think=False):
             return llm.ChatResult(queue.pop(0), "", 1.0, 10, 10)
 
         with patch.object(explain, "route", return_value=(explain.Route(type="calculation"), 0.1)), \

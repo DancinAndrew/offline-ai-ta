@@ -30,3 +30,11 @@ RETRIEVAL_METHOD = "vector"
 # different wording every run (EXPERIENCE.md, change 9). Settable for experiments; eval runs record the
 # value they used in their options.
 EXPLAIN_TEMPERATURE = float(os.environ.get("AI_TA_EXPLAIN_TEMPERATURE", "0"))
+
+# Steps that use the model's thinking mode, comma-separated from route, check, calc, explain. Off by default;
+# settable for experiments, and eval runs record it (architecture §9: cost and effect per step).
+THINK_STEPS = frozenset(s.strip() for s in os.environ.get("AI_TA_THINK_STEPS", "").split(",") if s.strip())
+# Thinking calls follow the model card's "thinking, precise" sampling rather than greedy decoding, and get room
+# for the thinking itself, which counts toward the output limit.
+THINK_OPTIONS = {"temperature": 0.6, "top_p": 0.95, "top_k": 20, "presence_penalty": 0.0, "seed": 7}
+THINK_EXTRA_TOKENS = 4000

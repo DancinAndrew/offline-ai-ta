@@ -93,17 +93,25 @@ def chat(
     return result
 
 
+def step_options(step: str, options: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+    """Whether a step thinks (config.THINK_STEPS), and its sampling options when it does."""
+    if step not in config.THINK_STEPS:
+        return False, options
+    return True, {**options, **config.THINK_OPTIONS,
+                  "num_predict": options.get("num_predict", 800) + config.THINK_EXTRA_TOKENS}
+
+
 def structured(messages: list[dict[str, str]], schema: type[BaseModel], *, temperature: float = 0.0,
                purpose: str = "", num_predict: int = 900) -> tuple[BaseModel, float]:
     """Ask for JSON matching ``schema`` (Ollama ``format``), validate it, retry once.
 
     Returns the parsed object and the seconds spent in the model.
     """
-    options = {"temperature": temperature, "top_p": 0.8, "top_k": 20, "presence_penalty": 0.0,
-               "num_predict": num_predict, "seed": 7}
+    think, options = step_options(purpose, {"temperature": temperature, "top_p": 0.8, "top_k": 20,
+                                            "presence_penalty": 0.0, "num_predict": num_predict, "seed": 7})
     seconds, last_error = 0.0, ""
     for _ in range(2):
-        result = chat(messages, fmt=schema.model_json_schema(), options=options, purpose=purpose)
+        result = chat(messages, think=think, fmt=schema.model_json_schema(), options=options, purpose=purpose)
         seconds += result.wall_seconds
         try:
             return schema.model_validate_json(result.content), seconds

@@ -255,6 +255,7 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
     meta = {"version": evaluate.git_version(), "ollama": llm.ollama_version(), "model": config.GENERATION_MODEL,
             "embedding_model": args.model,
             "chunking": args.chunking, "k": args.k, "options": explain.OPTIONS,
+            "think_steps": sorted(config.THINK_STEPS),
             "sets": args.sets, "split": args.split, "questions": len(items)}
     kept_private = [item["id"] for item in items if evaluate.is_private(item)]
     # Every answer is saved as soon as it exists, so a crash partway through keeps what already ran.
