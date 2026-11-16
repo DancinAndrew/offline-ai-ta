@@ -27,6 +27,7 @@ LIST_LIMIT = 5
 COMMANDS: dict[str, Action] = {"開始": "quiz", "出題": "quiz", "下一題": "quiz", "換一題": "quiz", "提示": "hint",
                                "放棄": "give_up", "看答案": "give_up", "進度": "progress"}
 END_WORDS = ("結束", "exit", "quit")
+NO_QUESTION = "目前沒有題目在等作答。輸入「開始」或說想練的主題。"
 
 
 class Intent(BaseModel):
@@ -209,7 +210,7 @@ class ReviewSession:
 
     def hint(self) -> list[Reply]:
         if not self.pending:
-            return [Reply("note", "目前沒有題目在等作答。")]
+            return [Reply("note", NO_QUESTION)]
         if self.pending.hinted:
             return [Reply("hint", f"提示只有一個：{self.pending.quiz.hint}\n\n想不出來可以輸入「放棄」看答案。")]
         self.pending.hinted = True
@@ -220,6 +221,8 @@ class ReviewSession:
 
     def answer(self, text: str, pending_id: str | None = None) -> list[Reply]:
         pending = self.pending
+        if pending is None and pending_id is None:
+            return [Reply("note", NO_QUESTION)]
         if pending is None or (pending_id is not None and pending_id != pending.id):
             return [Reply("note", "這題已經批改過了。")]
         self.pending = None   # cleared before grading, so a repeated submission cannot record twice

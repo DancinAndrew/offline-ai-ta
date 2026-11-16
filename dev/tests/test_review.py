@@ -88,6 +88,11 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(self.session.answer("挑增益最大的特徵", pending_id)[0].kind, "note")
         self.assertEqual(len(learner.load_events(self.events)), 1)
 
+    def test_giving_up_without_a_question_says_there_is_none(self):
+        self.assertEqual(self.session.handle("放棄")[0].markdown, review.NO_QUESTION)
+        self.assertEqual(self.session.handle("提示")[0].markdown, review.NO_QUESTION)
+        self.assertEqual(learner.load_events(self.events), [])
+
     def test_the_hint_is_given_once(self):
         self.session.handle("開始")
         self.assertEqual(self.session.handle("提示")[0].markdown, "提示：想想資訊增益")

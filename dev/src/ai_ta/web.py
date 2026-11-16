@@ -26,6 +26,19 @@ FONTS = ["Source Sans Pro", "PingFang TC", "Noto Sans TC", "system-ui", "sans-se
 CSS = ".status { font-size: 0.9em; }"
 
 
+def message_text(content) -> str:
+    """The text of a chat message. Gradio 6 hands back [{'text': ..., 'type': 'text'}], not a plain string;
+    turning that list into a string sent the wrapper to the session, so commands like 「放棄」 never matched."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, dict):
+        return str(content.get("text", ""))
+    if isinstance(content, (list, tuple)):
+        return "".join(message_text(part) for part in content if not isinstance(part, dict) or
+                       part.get("type", "text") == "text")
+    return ""
+
+
 def page_url(link: PageLink) -> str:
     """Opens the slide PDF at the cited page in the browser's own viewer."""
     path = (config.VAULT_ROOT / link.pdf).resolve()
@@ -61,8 +74,7 @@ def build(retriever: Retriever, events=None) -> gr.Blocks:
         last = history[-1] if history else None
         if not last or last["role"] != "user":
             return history, session.status()
-        text = last["content"] if isinstance(last["content"], str) else str(last["content"])
-        replies = session.handle(text)
+        replies = session.handle(message_text(last["content"]))
         history = history + [{"role": "assistant", "content": reply.markdown} for reply in replies]
         return history, session.status()
 
