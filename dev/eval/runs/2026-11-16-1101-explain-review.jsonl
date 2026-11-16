@@ -1,0 +1,22 @@
+{"meta": {"run": "2026-11-16-1101-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-16-1044-explain.jsonl", "harness": "同 1005（a106570 加的環境變數設定溫度）", "ollama": "0.40.16", "temperature": 0.0, "role_in_series": "降溫實驗的 C 組（溫度 0）", "scope": "只跑走解釋流程的 25 題；確認理解的 9 題用溫度 0 的判斷步驟，不受解釋步驟的溫度影響。", "summary": {"全部": {"正確": 20, "部分正確": 5, "錯誤": 0, "題數": 25, "正確_wilson95": [0.61, 0.91], "正確或部分正確_wilson95": [0.87, 1.0]}, "midterm-baseline": {"正確": 8, "部分正確": 3, "錯誤": 0, "題數": 11, "正確_wilson95": [0.43, 0.9], "正確或部分正確_wilson95": [0.74, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 12, "部分正確": 2, "錯誤": 0, "題數": 14, "正確_wilson95": [0.6, 0.96], "正確或部分正確_wilson95": [0.78, 1.0]}, "self-check": {"正確": 9, "部分正確": 1, "錯誤": 0}, "traps": {"正確": 0, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
+{"id": "mb-04", "verdict": "正確", "failure": [], "notes": "公式、0.21、不能互換、recall／precision；兩輪文字完全相同。"}
+{"id": "mb-06", "verdict": "部分正確", "failure": ["教學", "檢索"], "notes": "定義、公式和 0.21 都對，沒有小學生比喻；這輪沒有先說「筆記沒有提到」。"}
+{"id": "mb-07", "verdict": "正確", "failure": [], "notes": "比較各類後驗取最大，並說明和直接比未正規化分數效果相同，附 0.974 的例子。"}
+{"id": "mb-10", "verdict": "正確", "failure": [], "notes": "例子 (1,2)、(4,6) 和平方的影響。"}
+{"id": "mb-11", "verdict": "正確", "failure": [], "notes": "p ≥ 1 所以可以大於 2；沒有自己編例子。"}
+{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度和 1 − cosθ、0.707／0.293 的例子；兩輪文字完全相同。"}
+{"id": "mb-14", "verdict": "部分正確", "failure": ["生成"], "notes": "這輪更直接說「通常是不允許的…不能重複使用已用過的特徵」，誤解講得更明確。"}
+{"id": "mb-15", "verdict": "部分正確", "failure": ["教學"], "notes": "說明子樹各自挑特徵，但沒直接回答「不一定都用心情」。"}
+{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "計算器算出 0.970951；兩輪文字完全相同。"}
+{"id": "mb-18", "verdict": "正確", "failure": [], "notes": "這輪逐個說明符號，也講到「乘以 log₂ p_c 後加總並取負值」，表示不確定性。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "等於最大化 TNR；最後一句扯到 Guiding Note 選擇題的情境。"}
+{"id": "sc-01", "verdict": "正確", "failure": [], "notes": "f、g 的說明正確；兩輪文字完全相同。"}
+{"id": "sc-04", "verdict": "正確", "failure": [], "notes": "錯的偽標籤一輪輪累積；兩輪文字完全相同。"}
+{"id": "sc-07", "verdict": "正確", "failure": ["生成"], "notes": "計算器仍因 if 判斷失敗；回答照筆記寫，內容正確；兩輪文字完全相同。"}
+{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "先驗小、偽陽性 0.02976 大於真陽性 0.00784。"}
+{"id": "sc-14", "verdict": "正確", "failure": [], "notes": "p=1 曼哈頓、p=2 歐式；兩輪文字完全相同。"}
+{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同；提到筆記練習題的選項 A、B。"}
+{"id": "sc-20", "verdict": "正確", "failure": [], "notes": "Pearson 只量直線、y = x² 的 r 約 0。"}
+{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "cross-entropy ≥ 熵、相同時才相等、訓練時下降。"}
+{"id": "sc-27", "verdict": "正確", "failure": [], "notes": "Copy-on-Write 與正確寫法；結尾一句附註說筆記沒寫原因，不太準確。兩輪文字完全相同。"}
+{"id": "sc-30", "verdict": "部分正確", "failure": ["生成"], "notes": "做法對，但把筆記「測試資料只有兩筆時每欄變成 0 或 1」講成一般情況，還說是資料洩漏。"}

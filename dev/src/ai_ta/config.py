@@ -26,6 +26,7 @@ EMBEDDING_MODELS = ("bge-m3", "qwen3-embedding:0.6b", "embeddinggemma-2:270m")
 EMBEDDING_MODEL = os.environ.get("AI_TA_EMBED_MODEL", "qwen3-embedding:0.6b")
 RETRIEVAL_METHOD = "vector"
 
-# Sampling temperature of the explanation step (the routing, check and calc steps use 0). Settable for
-# experiments; eval runs record the value they used in their options.
-EXPLAIN_TEMPERATURE = float(os.environ.get("AI_TA_EXPLAIN_TEMPERATURE", "0.3"))
+# Sampling temperature of the explanation step. All steps use 0 by default: at 0.3 the same question gave
+# different wording every run (EXPERIENCE.md, change 9). Settable for experiments; eval runs record the
+# value they used in their options.
+EXPLAIN_TEMPERATURE = float(os.environ.get("AI_TA_EXPLAIN_TEMPERATURE", "0"))
