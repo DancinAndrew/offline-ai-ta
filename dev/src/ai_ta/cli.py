@@ -146,6 +146,13 @@ def cmd_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_web(args: argparse.Namespace) -> int:
+    """The review session on a local web page; imported here so other commands do not load Gradio."""
+    from . import web
+    web.launch(port=args.port, open_browser=args.open)
+    return 0
+
+
 def cmd_progress(args: argparse.Namespace) -> int:
     states = learner.derive_state(learner.load_events())
     if not states:
@@ -387,6 +394,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("review", help="a review session: practice, re-explain misses, ask questions; 「結束」 ends it")
     p.add_argument("--model", default=config.EMBEDDING_MODEL, help="embedding model")
     p.set_defaults(func=cmd_review)
+
+    p = sub.add_parser("web", help="the review session on a local web page (127.0.0.1 only)")
+    p.add_argument("--port", type=int, default=7860)
+    p.add_argument("--open", action="store_true", help="open it in the default browser")
+    p.set_defaults(func=cmd_web)
 
     p = sub.add_parser("eval-retrieval", help="score retrieval against the gold sections of the eval set")
     p.add_argument("--k", type=int, default=5)
