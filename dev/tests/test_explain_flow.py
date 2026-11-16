@@ -9,7 +9,7 @@ from unittest.mock import patch
 from ai_ta import calc, explain, llm
 from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
                            answer_prompt, calc_passage, calc_problems, check_citations, compute, render_check,
-                           retrieve_for_claims)
+                           retrieve_for_claims, search_passages)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
 
@@ -158,6 +158,27 @@ class ComputeTest(unittest.TestCase):
         steps = calc.run("a = 2\nb = a * 3")
         self.assertEqual(calc_passage(steps, partial=True).text.splitlines()[-1], PARTIAL_NOTE)
         self.assertNotIn(PARTIAL_NOTE, calc_passage(steps).text)
+
+
+class KidLevelTest(unittest.TestCase):
+    """A request for a kid-level explanation keeps one slot for the notes' 小學生版 (mb-06)."""
+
+    POOL = ["a", "b", "c", "d", "小學生版 e", "f"]
+
+    def test_the_best_kid_level_passage_takes_the_last_slot(self):
+        retriever = FakeRetriever({"q": self.POOL})
+        hits = search_passages(retriever, "q", "用小學生聽得懂的方式解釋", 4)
+        self.assertEqual([h.chunk.chunk_id for h in hits], ["a", "b", "c", "小學生版 e"])
+
+    def test_other_questions_get_the_same_passages(self):
+        retriever = FakeRetriever({"q": self.POOL})
+        self.assertEqual([h.chunk.chunk_id for h in search_passages(retriever, "q", "解釋先驗", 4)], ["a", "b", "c", "d"])
+
+    def test_nothing_changes_when_one_is_already_in_view_or_none_exists(self):
+        in_view = FakeRetriever({"q": ["a", "小學生版 b", "c", "d", "e"]})
+        self.assertEqual([h.chunk.chunk_id for h in search_passages(in_view, "q", "小學生", 4)], ["a", "小學生版 b", "c", "d"])
+        none = FakeRetriever({"q": ["a", "b", "c", "d", "e"]})
+        self.assertEqual([h.chunk.chunk_id for h in search_passages(none, "q", "小學生", 4)], ["a", "b", "c", "d"])
 
 
 class AnswerRetryTest(unittest.TestCase):

@@ -275,6 +275,28 @@ class ExplainResult:
         return self.route_seconds + calc_seconds + self.retrieval_seconds + self.generation_seconds
 
 
+KID_LEVEL = re.compile(r"小學生|小朋友|國小|小孩")
+KID_MARK = "小學生"   # the notes mark their kid-level explanations 「小學生版」
+KID_POOL = 30
+
+
+def search_passages(retriever: Retriever, query: str, question: str, k: int) -> list[Hit]:
+    """The top k passages; a request for a kid-level explanation keeps one slot for the notes' own.
+
+    The notes carry 「小學生版」 explanations, but for mb-06 (先驗、後驗、似然, 用小學生聽得懂的方式) the one
+    on Bayes ranked fifth, behind four more technical Bayes sections, so the answer gave no analogy. Only
+    questions that ask for that level change; the rest get the same passages as before.
+    """
+    if not KID_LEVEL.search(question):
+        return retriever.search(query, k=k)
+    pool = retriever.search(query, k=KID_POOL)
+    top = pool[:k]
+    if any(KID_MARK in hit.chunk.text for hit in top):
+        return top
+    kid = next((hit for hit in pool[k:] if KID_MARK in hit.chunk.text), None)
+    return top if kid is None else top[:-1] + [kid]
+
+
 def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dict[str, str]] | None = None,
            retrieval_query: str | None = None, use_router: bool = True) -> ExplainResult:
     routed, route_seconds = route(question) if use_router else (None, 0.0)
@@ -293,7 +315,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
             pass  # fall back to a normal explanation below
 
     started = time.perf_counter()
-    hits = retriever.search(retrieval_query or question, k=k)
+    hits = search_passages(retriever, retrieval_query or question, question, k)
     retrieval_seconds = time.perf_counter() - started
 
     passages: list[Chunk] = []
