@@ -45,8 +45,20 @@ def system_prompt() -> str:
     return harness_text("systemprompt.md", "guardrails.md", "skills/explain/SKILL.md")
 
 
-def passages_block(chunks: list[Chunk]) -> str:
-    return "\n\n".join(f"[{n}] {c.location}\n{clean_text(c.text)}" for n, c in enumerate(chunks, start=1))
+def passages_block(chunks: list[Chunk], start: int = 1) -> str:
+    return "\n\n".join(f"[{n}] {c.location}\n{clean_text(c.text)}" for n, c in enumerate(chunks, start=start))
+
+
+def answer_prompt(passages: list[Chunk], question: str) -> str:
+    """The user turn: a calculator result stands apart from the notes, still numbered [1].
+
+    Listed as one more notes passage, the result was read as some other worked example: answers said
+    it "was computed for the spam problem" and redid the arithmetic (change 11).
+    """
+    if passages and passages[0].chunk_id == "calc":
+        return (f"這一題的程式計算結果：\n\n{passages_block(passages[:1])}\n\n"
+                f"筆記段落：\n\n{passages_block(passages[1:], start=2)}\n\n問題：{question}")
+    return f"筆記段落：\n\n{passages_block(passages)}\n\n問題：{question}"
 
 
 def route(question: str) -> tuple[Route | None, float]:
@@ -294,7 +306,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     passages += [hit.chunk for hit in hits]
 
     messages = [{"role": "system", "content": system_prompt()}, *(history or [])]
-    messages.append({"role": "user", "content": f"筆記段落：\n\n{passages_block(passages)}\n\n問題：{question}"})
+    messages.append({"role": "user", "content": answer_prompt(passages, question)})
 
     attempts: list[str] = []
     reasons: list[str] = []
@@ -352,7 +364,7 @@ def calc_problems(answer: str, question: str, passages: list[Chunk]) -> list[str
     computed = _numbers("\n".join([question] + [p.text for p in passages if p.chunk_id == "calc"]))
     head = [n for n in dict.fromkeys(DECIMAL.findall(first)) if not _rounds_from(n, computed)]
     if head:
-        found.append(f"第一句的 {'、'.join(head)} 不是程式算出的數字，可能是筆記裡別的例子")
+        found.append(f"第一句的 {'、'.join(head)} 不是 [1] 算出的數字；這一題的答案就是 [1] 的結果")
     known = computed + _numbers("\n".join(p.text for p in passages))
     stray = [n for n in dict.fromkeys(DECIMAL.findall(answer)) if n not in head and not _rounds_from(n, known)]
     if stray:

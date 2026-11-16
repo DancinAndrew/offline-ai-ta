@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from ai_ta import calc, explain, llm
 from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
-                           calc_passage, calc_problems, check_citations, compute, render_check,
+                           answer_prompt, calc_passage, calc_problems, check_citations, compute, render_check,
                            retrieve_for_claims)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
@@ -140,6 +140,13 @@ class ComputeTest(unittest.TestCase):
         self.assertIn("第一句的 0.269755", found[0])
         # Later sentences may quote the notes.
         self.assertEqual(calc_problems("流失後驗約 0.355 [1]。筆記的變式是 0.269755 [2]。", "q", passages), [])
+
+    def test_a_calculator_result_stands_apart_from_the_notes(self):
+        passages = [calc_passage(calc.run("a = 0.3 * 0.5")), chunk("notes")]
+        prompt = answer_prompt(passages, "q")
+        self.assertTrue(prompt.startswith("這一題的程式計算結果：\n\n[1] 程式計算結果\n"))
+        self.assertIn("筆記段落：\n\n[2] Note > notes\nnotes", prompt)
+        self.assertTrue(answer_prompt([chunk("notes")], "q").startswith("筆記段落：\n\n[1] "))
 
     def test_calc_answers_must_not_open_with_a_refusal(self):
         passages = [calc_passage(calc.run("a = 0.3 * 0.5"))]
