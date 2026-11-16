@@ -122,6 +122,7 @@ class ReviewSession:
         self.topic: str | None = None        # the topic the user asked for, kept for the next questions
         self.reexplained: set[str] = set()   # once per point per session
         self.missed: set[str] = set()        # points answered wrong in this session
+        self.asked: set[str] = set()         # points asked about in this session
 
     # --- state -----------------------------------------------------------------------------------------
     def states(self) -> dict[str, learner.PointState]:
@@ -177,8 +178,14 @@ class ReviewSession:
 
     # --- practice --------------------------------------------------------------------------------------
     def pick_point(self, topic: str | None) -> Chunk | None:
+        """The next section to ask about; never the one whose question is on screen.
+
+        「下一題」 while a question waits used to pick that same section again (an unanswered question records
+        nothing), and the seeded question writer then repeated the same question word for word.
+        """
         states = self.states()
-        by_id = {c.chunk_id: c for c in self.retriever.chunks.values()}
+        current = self.pending.chunk.chunk_id if self.pending else None
+        by_id = {c.chunk_id: c for c in self.retriever.chunks.values() if c.chunk_id != current}
         # A point missed in this session comes back once the schedule says it is due (about a minute after
         # a miss), even when a topic is set; a second miss is what triggers the re-explanation.
         for state in learner.due_points(states):
@@ -186,9 +193,10 @@ class ReviewSession:
                 return by_id[state.knowledge_point]
         if topic:
             candidates = [h.chunk for h in self.retriever.search(topic, k=8)
-                          if len(h.chunk.text) >= MIN_QUIZ_SECTION_CHARS]
-            # The relevant section practiced least often.
-            return min(candidates, key=lambda c: states[c.chunk_id].attempts if c.chunk_id in states else 0,
+                          if len(h.chunk.text) >= MIN_QUIZ_SECTION_CHARS and h.chunk.chunk_id != current]
+            # Sections not yet asked in this session first, then the one practiced least often.
+            return min(candidates, key=lambda c: (c.chunk_id in self.asked,
+                                                  states[c.chunk_id].attempts if c.chunk_id in states else 0),
                        default=None)
         for state in learner.due_points(states) + learner.weak_points(states):
             if state.knowledge_point in by_id:
@@ -204,6 +212,7 @@ class ReviewSession:
         attempts = states[chunk.chunk_id].attempts if chunk.chunk_id in states else 0
         quiz = self.services.make_question(chunk, practice.bloom_for(attempts))
         self.pending = Pending(chunk, quiz, recheck=recheck)
+        self.asked.add(chunk.chunk_id)
         lead = "**再確認一題**" if recheck else f"**練習（{quiz.bloom_level}）**"
         return [Reply("question", f"{lead}　_{chunk.location}_\n\n{quiz.question}\n\n"
                                   "（作答；輸入「提示」看提示，「放棄」看答案。）")]

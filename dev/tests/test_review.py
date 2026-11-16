@@ -149,6 +149,12 @@ class SessionTest(unittest.TestCase):
         kinds = [r.kind for r in self.session.handle("又猜錯")]
         self.assertEqual(kinds, ["grade", "reexplain", "question"])
 
+    def test_next_question_moves_on_from_the_one_on_screen(self):
+        self.session.handle("練決策樹")
+        first = self.session.pending.chunk.chunk_id
+        self.session.handle("下一題")
+        self.assertNotEqual(self.session.pending.chunk.chunk_id, first)
+
     def test_progress_lists_practised_points(self):
         self.session.handle("開始")
         self.session.handle("挑增益最大的特徵")
