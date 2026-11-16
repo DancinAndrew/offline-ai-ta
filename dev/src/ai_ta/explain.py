@@ -68,15 +68,20 @@ TRUNCATED = "計算太長，超過長度上限被截斷"
 @dataclass(frozen=True)
 class Calculation:
     program: str               # what ran, or the last attempt
-    steps: list[calc.Step]     # empty when the calculator could not run it
+    steps: list[calc.Step]     # with an error: the lines that ran before it stopped, or empty
     error: str | None
     rewrites: int              # 1 when the first program was rejected and rewritten
     seconds: float             # time spent writing the program(s)
 
     @property
+    def partial(self) -> bool:
+        """The calculator stopped part-way; what it finished is kept, the rest is left to the answer."""
+        return bool(self.steps) and self.error is not None
+
+    @property
     def value(self) -> float | None:
-        """The last result when it is a single number."""
-        last = self.steps[-1].value if self.steps else None
+        """The last result when it is a single number and the program ran to the end."""
+        last = self.steps[-1].value if self.steps and not self.partial else None
         return last if isinstance(last, float) else None
 
 
@@ -99,22 +104,40 @@ def compute(question: str, passages: list[Chunk], write: ProgramWriter = write_p
     messages = [{"role": "system", "content": harness_text("skills/calc/SKILL.md")},
                 {"role": "user", "content": f"筆記段落：\n\n{passages_block(passages)}\n\n題目：{question}"}]
     seconds, error, program, attempt = 0.0, "", "", 0
+    finished: list[calc.Step] = []
     for attempt in range(2):
         program, took, truncated = write(messages)
         seconds += took
         try:
             return Calculation(program, calc.run(program), None, attempt, seconds)
         except calc.CalcError as exc:
-            error, rewritable = (TRUNCATED, False) if truncated else (str(exc), exc.rewritable)
+            if truncated:
+                error, rewritable, finished = TRUNCATED, False, complete_lines(program)
+            else:
+                error, rewritable, finished = str(exc), exc.rewritable, exc.steps
         if not rewritable:
             break
         messages += [{"role": "assistant", "content": program},
                      {"role": "user", "content": f"計算器算不出來：{error}\n請照規則重寫整段計算，只輸出計算。"}]
-    return Calculation(program, [], error, attempt, seconds)
+    # Keep what ran before the failing line (sc-07 had every distance before its `if`), unless it only
+    # wrote down the question's numbers.
+    kept = finished if any(not step.literal for step in finished) else []
+    return Calculation(program, kept, error, attempt, seconds)
 
 
-def calc_passage(steps: list[calc.Step]) -> Chunk:
-    text = "\n".join(step.text() for step in steps)
+def complete_lines(program: str) -> list[calc.Step]:
+    """The steps a cut-off program had finished: everything but its unfinished last line."""
+    try:
+        return calc.run("\n".join(program.splitlines()[:-1]))
+    except calc.CalcError as exc:
+        return exc.steps
+
+
+PARTIAL_NOTE = "（計算器只算到這裡；後面要比大小或繼續算的部分沒有算。）"
+
+
+def calc_passage(steps: list[calc.Step], partial: bool = False) -> Chunk:
+    text = "\n".join([step.text() for step in steps] + ([PARTIAL_NOTE] if partial else []))
     return Chunk("calc", "calc", "", ("程式計算結果",), 0, 1, 0, 0, text, ())
 
 
@@ -260,7 +283,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     if routed and routed.type == "calculation" and any(ch.isdigit() for ch in question):
         calculation = compute(question, [hit.chunk for hit in hits])
         if calculation.steps:
-            passages.append(calc_passage(calculation.steps))
+            passages.append(calc_passage(calculation.steps, calculation.partial))
     passages += [hit.chunk for hit in hits]
 
     messages = [{"role": "system", "content": system_prompt()}, *(history or [])]

@@ -40,11 +40,46 @@ def _reduce(fn, **kwargs):
     return lambda *args: fn(np.asarray(args[0] if len(args) == 1 else args, dtype=float), **kwargs)
 
 
+def _dist(a: Value, b: Value) -> Value:
+    """Straight-line distance; given a matrix of points, one distance per row (sc-07: no per-point lines)."""
+    diff = np.subtract(a, b)
+    return np.abs(diff) if np.ndim(diff) == 0 else np.linalg.norm(diff, axis=-1)
+
+
+def _bernoulli(x: Value, p: Value) -> Value:
+    """Each yes/no feature's probability in one class: p for a yes (1), 1 - p for a no (0).
+
+    Choosing by hand where to write 1 - p went wrong for one class or one feature (pr-p01); a
+    plain prod(x * p + ...) silently squared scalars against the vector x, so the shapes are checked.
+    It returns the factors rather than their product so the answer can show every 1 - p it used:
+    given only the product, the answer step redid the arithmetic and dropped a complement.
+    """
+    x, p = np.asarray(x, dtype=float), np.asarray(p, dtype=float)
+    if x.ndim != 1 or x.shape != p.shape:
+        raise ValueError("bernoulli(x, p) 的 x 和 p 要是一樣長的向量：x 放每個特徵是 1、否 0，p 放這一類每個特徵「是」的機率")
+    if not np.all((x == 0) | (x == 1)):
+        raise ValueError("bernoulli 的 x 只能寫 1（是）或 0（否）")
+    if np.any((p < 0) | (p > 1)):
+        raise ValueError("bernoulli 的 p 要是 0 到 1 之間的機率")
+    return np.where(x == 1, p, 1 - p)
+
+
+def _diag(m: Value) -> Value:
+    m = np.asarray(m, dtype=float)
+    if m.ndim != 2:
+        raise ValueError("diag 只能用在矩陣上")
+    return np.diag(m)
+
+
+# rowsum/colsum/diag: a confusion matrix in whole-matrix steps. Cell-by-cell FP and FN sums got
+# the direction wrong and ran past the length limit (pr-p19).
 FUNCTIONS = {
     "log": _log, "ln": np.log, "log2": np.log2, "log10": np.log10, "sqrt": np.sqrt, "exp": np.exp,
-    "abs": np.abs, "sum": _reduce(np.sum, axis=0), "mean": _reduce(np.mean, axis=0), "max": _reduce(np.max),
-    "min": _reduce(np.min), "dot": np.dot, "norm": np.linalg.norm,
-    "dist": lambda a, b: np.linalg.norm(np.subtract(a, b)),
+    "abs": np.abs, "sum": _reduce(np.sum, axis=0), "prod": _reduce(np.prod, axis=0), "mean": _reduce(np.mean, axis=0),
+    "max": _reduce(np.max),
+    "min": _reduce(np.min), "dot": np.dot, "norm": np.linalg.norm, "dist": _dist,
+    "bernoulli": _bernoulli, "diag": _diag, "rowsum": lambda m: np.sum(np.asarray(m, dtype=float), axis=-1),
+    "colsum": lambda m: np.sum(np.asarray(m, dtype=float), axis=0),
     "relu": lambda x: np.maximum(0.0, x), "sigmoid": lambda x: 1 / (1 + np.exp(-np.asarray(x, dtype=float))),
     "softmax": _softmax,
 }
@@ -60,11 +95,14 @@ class CalcError(ValueError):
 
     rewritable is False for programs built around loops or decisions: in the dev runs a rewrite
     never turned those into a straight-line calculation, it only doubled the wait.
+    steps holds the lines that ran before the failing one; a program that computed every distance
+    and then tried an `if` still has those distances (sc-07).
     """
 
-    def __init__(self, message: str, rewritable: bool = True):
+    def __init__(self, message: str, rewritable: bool = True, steps: list[Step] | None = None):
         super().__init__(message)
         self.rewritable = rewritable
+        self.steps = steps or []
 
 
 @dataclass(frozen=True)
@@ -106,10 +144,11 @@ def run(program: str) -> list[Step]:
         for statement in tree.body:
             try:
                 steps.append(_run_statement(statement, text, env))
-            except CalcError:
+            except CalcError as exc:
+                exc.steps = steps
                 raise
             except (ArithmeticError, ValueError, TypeError, IndexError, np.linalg.LinAlgError) as exc:
-                raise CalcError(f"第 {statement.lineno} 行算不出來：{exc}") from exc
+                raise CalcError(f"第 {statement.lineno} 行算不出來：{exc}", steps=steps) from exc
     return steps
 
 

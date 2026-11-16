@@ -63,7 +63,9 @@ def cmd_ask(args: argparse.Namespace) -> int:
         console.print(f"  {line}")
     if not result.check.ok:
         console.print("[yellow]出處標記不完整，請對照筆記確認。[/yellow]")
-    if result.calculation and result.calculation.error:
+    if result.calculation and result.calculation.partial:
+        console.print("[yellow]計算器只算了前面幾步，之後的數字沒有經過程式驗算。[/yellow]")
+    elif result.calculation and result.calculation.error:
         console.print("[yellow]計算器沒有算出結果，回答裡的數字沒有經過程式驗算。[/yellow]")
     kind = result.route.type if result.route else "未判斷"
     console.print(f"[dim]題型 {kind}，{result.total_seconds:.1f} 秒，{len(result.answer)} 字[/dim]")
@@ -280,8 +282,9 @@ def cmd_eval_explain(args: argparse.Namespace) -> int:
             if "error" in record:
                 console.print(f"[red]{item['id']}: failed twice, recorded as an error[/red]")
                 continue
+            calc_status = "failed" if not record["calc_steps"] else "partial" if record["calc_error"] else "ok"
             calc_run_note = "" if not record["calc_program"] else (
-                f"  calc {'ok' if record['calc_steps'] else 'failed'}" + (" after rewrite" if record["calc_rewrites"] else ""))
+                f"  calc {calc_status}" + (" after rewrite" if record["calc_rewrites"] else ""))
             console.print(f"{item['id']}: {record['total_seconds']:5.1f} s  {record['chars']:4d} 字  "
                           f"cited {record['cited']}  ok={record['citations_ok']}{calc_run_note}")
     if kept_private:

@@ -56,6 +56,40 @@ class ProgramTest(unittest.TestCase):
         self.assertEqual(run("M = [[1, 2], [3, 4]]; sum(M.T)")[-1].value, [3.0, 7.0])  # row totals
         self.assertAlmostEqual(evaluate("sum(sum([[1, 2], [3, 4]]))"), 10.0)
 
+    def test_confusion_matrix_helpers(self):
+        steps = run("M = [[4, 1], [2, 3]]; diag(M); rowsum(M); colsum(M); diag(M) / rowsum(M)")
+        self.assertEqual([s.value for s in steps[1:4]], [[4.0, 3.0], [5.0, 5.0], [6.0, 4.0]])
+        self.assertEqual(steps[-1].value, [0.8, 0.6])  # recall when rows are the true classes
+        with self.assertRaises(CalcError) as caught:
+            run("diag([1, 2])")
+        self.assertIn("矩陣", str(caught.exception))
+
+    def test_bernoulli_uses_one_minus_p_for_every_no(self):
+        steps = run("x = [1, 0]; p = [0.6, 0.2]; f = bernoulli(x, p); prod(f)")
+        self.assertEqual(steps[2].text(), "f = bernoulli(x, p) = [0.6, 0.8]")  # every factor is shown
+        self.assertAlmostEqual(steps[-1].value, 0.6 * 0.8)
+        self.assertAlmostEqual(evaluate("prod(bernoulli([0, 0], [0.8, 0.3]))"), 0.2 * 0.7)
+
+    def test_bernoulli_rejects_mismatched_or_invalid_input(self):
+        for program, reason in (("x = [0, 0]; bernoulli(x, 0.8)", "一樣長"), ("bernoulli([1, 2], [0.5, 0.5])", "1（是）"),
+                                ("bernoulli([1, 0], [0.5, 1.5])", "0 到 1")):
+            with self.assertRaises(CalcError, msg=program) as caught:
+                run(program)
+            self.assertIn(reason, str(caught.exception))
+            self.assertTrue(caught.exception.rewritable)
+
+    def test_dist_gives_one_distance_per_row(self):
+        self.assertEqual(run("X = [[0, 2], [3, 1]]; dist(X, [0, 1])")[-1].value, [1.0, 3.0])
+        self.assertAlmostEqual(evaluate("dist(3, 5)"), 2.0)
+
+    def test_a_failure_keeps_the_lines_that_ran_before_it(self):
+        with self.assertRaises(CalcError) as caught:
+            run("a = 2\nb = a * 3\nc = b if b > 1 else 0")
+        self.assertEqual([s.name for s in caught.exception.steps], ["a", "b"])
+        with self.assertRaises(CalcError) as caught:
+            run("a = 2\nb = a / 0")
+        self.assertEqual([s.name for s in caught.exception.steps], ["a"])
+
     def test_rows_columns_and_ranges(self):
         self.assertEqual(run("M = [[1, 2], [3, 4]]; M[:, 0]")[-1].value, [1.0, 3.0])
         self.assertEqual(run("M = [[1, 2], [3, 4]]; M[1, :]")[-1].value, [3.0, 4.0])

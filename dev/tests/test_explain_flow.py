@@ -6,7 +6,7 @@
 import unittest
 
 from ai_ta import calc
-from ai_ta.explain import (MAX_CHECK_PASSAGES, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict, calc_passage,
+from ai_ta.explain import (MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict, calc_passage,
                            check_citations, compute, render_check, retrieve_for_claims)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
@@ -104,6 +104,28 @@ class ComputeTest(unittest.TestCase):
         result = compute("q", [], write=FakeWriter(("y + 1", False), ("z + 1", False)))
         self.assertEqual((result.steps, result.rewrites), ([], 1))
         self.assertIn("z 還沒定義", result.error)
+
+    def test_a_decision_keeps_the_steps_computed_before_it(self):
+        writer = FakeWriter(("x = [1, 2]\nd = dist(x, [1, 1])\ng = 1 if d > 0 else 0", False))
+        result = compute("q", [], write=writer)
+        self.assertEqual(([s.name for s in result.steps], len(writer.sent)), (["x", "d"], 1))
+        self.assertTrue(result.partial)
+        self.assertIsNone(result.value)  # the last kept step is not the answer
+        self.assertIn("if", result.error)
+
+    def test_steps_that_only_copy_the_question_are_not_kept(self):
+        result = compute("q", [], write=FakeWriter(("x = 2\ny = 1 if x > 0 else 0", False)))
+        self.assertEqual((result.steps, result.partial), ([], False))
+
+    def test_a_cut_off_program_keeps_its_finished_lines(self):
+        result = compute("q", [], write=FakeWriter(("a = 2\nb = a * 3\nc = (b +", True)))
+        self.assertEqual(([s.name for s in result.steps], result.error), (["a", "b"], TRUNCATED))
+        self.assertTrue(result.partial)
+
+    def test_a_partial_calc_passage_says_where_it_stopped(self):
+        steps = calc.run("a = 2\nb = a * 3")
+        self.assertEqual(calc_passage(steps, partial=True).text.splitlines()[-1], PARTIAL_NOTE)
+        self.assertNotIn(PARTIAL_NOTE, calc_passage(steps).text)
 
 
 if __name__ == "__main__":
