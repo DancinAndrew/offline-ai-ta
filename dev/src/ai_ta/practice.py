@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -46,9 +47,17 @@ def make_question(chunk: Chunk, bloom: str) -> QuizItem:
     return quiz
 
 
+GIVE_UP_MAX_CHARS = 6
+
+
 def is_give_up(answer: str) -> bool:
-    text = answer.strip().lower()
-    return not text or any(word in text for word in GIVE_UP_WORDS)
+    """An empty or very short answer such as 「不知道」「我不會」「放棄」.
+
+    A real answer that happens to contain 「不會」 (「這樣不會過擬合」) is not giving up; the old substring test
+    graded such answers 不知道 without reading them.
+    """
+    text = re.sub(r"[\s。，、！？!?.…~～]", "", answer).lower()
+    return not text or (len(text) <= GIVE_UP_MAX_CHARS and any(word in text for word in GIVE_UP_WORDS))
 
 
 def grade(chunk: Chunk, quiz: QuizItem, answer: str) -> Grade:

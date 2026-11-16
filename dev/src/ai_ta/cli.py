@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from . import config, evaluate, explain, index, ingest, learner, llm, practice
+from . import config, evaluate, explain, index, ingest, learner, llm, practice, review
 from .ingest import Chunk
 from .retrieve import Retriever
 
@@ -126,6 +126,23 @@ def cmd_quiz(args: argparse.Namespace) -> int:
                                          answer, result.label))
             state = learner.derive_state(learner.load_events())[chunk.chunk_id]
             console.print(f"[dim]掌握度 {state.mastery:.0%}，下次複習 {state.due.astimezone():%m/%d %H:%M}[/dim]")
+    return 0
+
+
+def cmd_review(args: argparse.Namespace) -> int:
+    """A review session in the terminal: the same session the web page runs (decision 0007)."""
+    with index.connect() as conn:
+        session = review.ReviewSession(Retriever(conn, model=args.model))
+        console.print(Markdown(session.opening().markdown))
+        while True:
+            try:
+                text = console.input("\n[bold]>[/bold] ").strip()
+            except EOFError:
+                break
+            if review.is_end(text):
+                break
+            for reply in session.handle(text):
+                console.print(Markdown(reply.markdown))
     return 0
 
 
@@ -366,6 +383,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_quiz)
 
     sub.add_parser("progress", help="mastery, review dates, and weak points").set_defaults(func=cmd_progress)
+
+    p = sub.add_parser("review", help="a review session: practice, re-explain misses, ask questions; 「結束」 ends it")
+    p.add_argument("--model", default=config.EMBEDDING_MODEL, help="embedding model")
+    p.set_defaults(func=cmd_review)
 
     p = sub.add_parser("eval-retrieval", help="score retrieval against the gold sections of the eval set")
     p.add_argument("--k", type=int, default=5)
