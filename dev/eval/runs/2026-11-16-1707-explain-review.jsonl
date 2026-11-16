@@ -1,0 +1,10 @@
+{"meta": {"run": "2026-11-16-1707-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-16-1646-explain.jsonl", "harness": "改動 13 第一版（commit 6609a20：改正 60 字、總結 40 字）", "ollama": "0.40.16", "temperature": 0.0, "scope": "只跑判成確認理解的 9 題", "summary": {"全部": {"正確": 7, "部分正確": 2, "錯誤": 0, "題數": 9, "正確_wilson95": [0.45, 0.94], "正確或部分正確_wilson95": [0.7, 1.0]}, "midterm-baseline": {"正確": 3, "部分正確": 2, "錯誤": 0, "題數": 5, "正確_wilson95": [0.23, 0.88], "正確或部分正確_wilson95": [0.57, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 4, "部分正確": 0, "錯誤": 0, "題數": 4, "正確_wilson95": [0.51, 1.0], "正確或部分正確_wilson95": [0.51, 1.0]}, "self-check": {"正確": 0, "部分正確": 0, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 0, "部分正確": 0, "錯誤": 0}}, "kept_private": []}}
+{"id": "mb-05", "verdict": "正確", "failure": [], "notes": "三點判定和 1646 相同，改正變短。"}
+{"id": "mb-08", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同。"}
+{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同。"}
+{"id": "tr-01", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同。"}
+{"id": "tr-04", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同，變短。"}
+{"id": "tr-07", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同。"}
+{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "判定和 1646 相同，變短。"}
+{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索"], "notes": "說明樹可以切成多支，但仍沒提 CART 一律二元切分。"}
+{"id": "mb-16", "verdict": "部分正確", "failure": ["生成"], "notes": "「理論上可以切乾淨」改正成特徵相同、標籤不同就分不開（對，第一次出現）；但「不重複選特徵」雖判需要修正，改正卻寫「同一特徵不會重複選取」，等於支持這個誤解。368 字。"}
