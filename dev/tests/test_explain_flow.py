@@ -6,8 +6,8 @@
 import unittest
 
 from ai_ta import calc
-from ai_ta.explain import (MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict, calc_passage,
-                           check_citations, compute, render_check, retrieve_for_claims)
+from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
+                           calc_passage, check_citations, compute, render_check, retrieve_for_claims)
 from ai_ta.ingest import Chunk
 from ai_ta.retrieve import Hit
 
@@ -56,13 +56,13 @@ class CheckFlowTest(unittest.TestCase):
 
     def test_calc_passage_shows_the_expression_and_value(self):
         passage = calc_passage(calc.run("-(2/5)*log2(2/5) - (3/5)*log2(3/5)"))
-        self.assertEqual(passage.text, "-(2/5)*log2(2/5) - (3/5)*log2(3/5) = 0.970951")
+        self.assertEqual(passage.text.splitlines(), [CALC_HEADER, "-(2/5)*log2(2/5) - (3/5)*log2(3/5) = 0.970951"])
         self.assertEqual(passage.location, "程式計算結果")
 
-    def test_calc_passage_lists_every_step(self):
+    def test_calc_passage_lists_every_step_with_its_numbers_filled_in(self):
         passage = calc_passage(calc.run("a = 0.3 * 0.5; b = 0.7 * 0.2; a / (a + b)"))
-        self.assertEqual(passage.text.splitlines(), ["a = 0.3 * 0.5 = 0.15", "b = 0.7 * 0.2 = 0.14",
-                                                     "a / (a + b) = 0.517241"])
+        self.assertEqual(passage.text.splitlines()[1:], ["a = 0.3 * 0.5 = 0.15", "b = 0.7 * 0.2 = 0.14",
+                                                         "a / (a + b) = 0.15 / (0.15 + 0.14) = 0.517241"])
 
 
 class FakeWriter:

@@ -11,6 +11,7 @@ program (decision: dev/harness/EXPERIENCE.md, change 4).
 from __future__ import annotations
 
 import ast
+import copy
 from dataclasses import dataclass
 from typing import Any
 
@@ -111,12 +112,14 @@ class Step:
     expression: str
     value: float | list       # a number, or nested lists for vectors and matrices
     literal: bool = False     # the expression only writes down given numbers
+    substituted: str = ""     # the expression with earlier names written as their values, when short
 
     def text(self) -> str:
         shown = format_value(self.value)
+        filled = f" = {self.substituted}" if self.substituted else ""
         if not self.name:
-            return f"{self.expression} = {shown}"
-        return f"{self.name} = {shown}" if self.literal else f"{self.name} = {self.expression} = {shown}"
+            return f"{self.expression}{filled} = {shown}"
+        return f"{self.name} = {shown}" if self.literal else f"{self.name} = {self.expression}{filled} = {shown}"
 
 
 def format_value(value: float | list) -> str:
@@ -166,8 +169,10 @@ def _run_statement(node: ast.stmt, text: str, env: dict[str, Value]) -> Step:
         # so nothing is shadowed. Rejecting it failed pr-p19 twice, since the rewrite kept the name.
         name = node.targets[0].id
         value = _check(_eval(node.value, env))
+        literal = _is_literal(node.value)
+        filled = "" if literal else _substitute(node.value, env, _plain(value))
         env[name] = value
-        return Step(name, ast.get_source_segment(text, node.value) or "", _plain(value), _is_literal(node.value))
+        return Step(name, ast.get_source_segment(text, node.value) or "", _plain(value), literal, filled)
     if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Subscript):
         raise CalcError(f"第 {node.lineno} 行：不能改向量裡的某一格，請另外取一個名稱")
     if isinstance(node, ast.Assign):
@@ -177,7 +182,8 @@ def _run_statement(node: ast.stmt, text: str, env: dict[str, Value]) -> Step:
         if (isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name) and expr.func.id == "print"
                 and len(expr.args) == 1 and not expr.keywords):
             expr = expr.args[0]  # tolerated: print(x) shows x
-        return Step("", ast.get_source_segment(text, expr) or "", _plain(_check(_eval(expr, env))))
+        value = _plain(_check(_eval(expr, env)))
+        return Step("", ast.get_source_segment(text, expr) or "", value, substituted=_substitute(expr, env, value))
     if isinstance(node, (ast.For, ast.While)):
         raise CalcError(f"第 {node.lineno} 行：不能用迴圈，請把每一步寫成一行「名稱 = 算式」", rewritable=False)
     if isinstance(node, ast.If):
@@ -185,6 +191,56 @@ def _run_statement(node: ast.stmt, text: str, env: dict[str, Value]) -> Step:
     if isinstance(node, (ast.Import, ast.ImportFrom)):
         raise CalcError(f"第 {node.lineno} 行：不能 import，可以直接用 log、sqrt、softmax 這些函式")
     raise CalcError(f"第 {node.lineno} 行：只能寫「名稱 = 算式」，不能用 {type(node).__name__}")
+
+
+MAX_FILLED_ITEMS = 4     # longer vectors and matrices keep their name
+MAX_FILLED_CHARS = 120
+
+
+def _substitute(node: ast.expr, env: dict[str, Value], value: float | list) -> str:
+    """The expression with earlier names written as their values, e.g. `0.45 * prod([0.9, 0.3, 0.4])`.
+
+    Given only `score = prior * prod(f) = 0.0486`, the answer step redid the arithmetic to show it and
+    dropped a complement; with the numbers filled in, it can copy them. Empty when nothing short fits.
+    """
+    filled_any = False
+
+    def number(v: Value) -> ast.expr | None:
+        array = np.asarray(v)
+        if array.ndim > 1 or array.size > MAX_FILLED_ITEMS:
+            return None
+        shown = format_value(_plain(array))
+        return ast.Name(id=f"({shown})" if array.ndim == 0 and float(array) < 0 else shown, ctx=ast.Load())
+
+    class Fill(ast.NodeTransformer):
+        def visit_Call(self, call: ast.Call) -> ast.Call:
+            call.args = [self.visit(arg) for arg in call.args]  # the function's own name stays
+            return call
+
+        def visit_Subscript(self, sub: ast.Subscript) -> ast.expr:
+            nonlocal filled_any
+            if isinstance(sub.value, ast.Name) and sub.value.id in env:
+                try:
+                    picked = number(_eval(sub, env))
+                except (CalcError, ArithmeticError, ValueError, TypeError, IndexError):
+                    picked = None
+                if picked is not None:
+                    filled_any = True
+                    return picked
+            return sub
+
+        def visit_Name(self, name: ast.Name) -> ast.expr:
+            nonlocal filled_any
+            picked = number(env[name.id]) if name.id in env else None
+            if picked is None:
+                return name
+            filled_any = True
+            return picked
+
+    filled = ast.unparse(Fill().visit(copy.deepcopy(node)))
+    if not filled_any or len(filled) > MAX_FILLED_CHARS or filled == format_value(value):
+        return ""
+    return filled
 
 
 def _is_literal(node: ast.expr) -> bool:

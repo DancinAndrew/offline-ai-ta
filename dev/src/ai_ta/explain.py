@@ -134,10 +134,15 @@ def complete_lines(program: str) -> list[calc.Step]:
 
 
 PARTIAL_NOTE = "（計算器只算到這裡；後面要比大小或繼續算的部分沒有算。）"
+# Only calculation questions see this passage, so the instruction lives here rather than in the system
+# prompt. Without it, answers redid the arithmetic from a notes example and dropped a complement, or said
+# the question's own numbers were "not in the notes" (change 11).
+CALC_HEADER = ("這是程式用這一題題目給的數字算好的結果。回答的數字照抄這裡；寫代入的算式時，"
+               "照抄每一行已經填好數字的那一段，不要自己重算。")
 
 
 def calc_passage(steps: list[calc.Step], partial: bool = False) -> Chunk:
-    text = "\n".join([step.text() for step in steps] + ([PARTIAL_NOTE] if partial else []))
+    text = "\n".join([CALC_HEADER] + [step.text() for step in steps] + ([PARTIAL_NOTE] if partial else []))
     return Chunk("calc", "calc", "", ("程式計算結果",), 0, 1, 0, 0, text, ())
 
 

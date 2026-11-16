@@ -66,7 +66,7 @@ class ProgramTest(unittest.TestCase):
 
     def test_bernoulli_uses_one_minus_p_for_every_no(self):
         steps = run("x = [1, 0]; p = [0.6, 0.2]; f = bernoulli(x, p); prod(f)")
-        self.assertEqual(steps[2].text(), "f = bernoulli(x, p) = [0.6, 0.8]")  # every factor is shown
+        self.assertEqual(steps[2].text(), "f = bernoulli(x, p) = bernoulli([1, 0], [0.6, 0.2]) = [0.6, 0.8]")
         self.assertAlmostEqual(steps[-1].value, 0.6 * 0.8)
         self.assertAlmostEqual(evaluate("prod(bernoulli([0, 0], [0.8, 0.3]))"), 0.2 * 0.7)
 
@@ -82,6 +82,17 @@ class ProgramTest(unittest.TestCase):
         steps = run("M = [[1, 2], [3, 4]]\ndiag = diag(M)\nlog = 3\nsum(diag) + log + log2(diag(M)[1])")
         self.assertEqual(steps[1].text(), "diag = diag(M) = [1, 4]")
         self.assertAlmostEqual(steps[-1].value, 5 + 3 + 2)
+
+    def test_earlier_values_are_filled_into_each_step(self):
+        steps = run("prior = 0.45\nf = [0.9, 0.3, 0.4]\nscore = prior * prod(f)")
+        self.assertEqual(steps[-1].text(), "score = prior * prod(f) = 0.45 * prod([0.9, 0.3, 0.4]) = 0.0486")
+        self.assertEqual(run("a = -2\nb = a ** 2")[-1].text(), "b = a ** 2 = (-2) ** 2 = 4")
+        self.assertEqual(run("v = [10, 8, 7]\nv[0] / sum(v)")[-1].text(), "v[0] / sum(v) = 10 / sum([10, 8, 7]) = 0.4")
+
+    def test_long_vectors_matrices_and_plain_copies_are_not_filled(self):
+        self.assertEqual(run("v = [1, 2, 3, 4, 5]\ns = sum(v)")[-1].text(), "s = sum(v) = 15")
+        self.assertEqual(run("M = [[1, 2], [3, 4]]\nt = rowsum(M)")[-1].text(), "t = rowsum(M) = [3, 7]")
+        self.assertEqual(run("a = 2\nb = a")[-1].text(), "b = a = 2")
 
     def test_dist_gives_one_distance_per_row(self):
         self.assertEqual(run("X = [[0, 2], [3, 1]]; dist(X, [0, 1])")[-1].value, [1.0, 3.0])
