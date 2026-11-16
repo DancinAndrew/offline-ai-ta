@@ -37,7 +37,7 @@
 | `gold_sections` | 答案所在的筆記段落，用索引裡的段落 ID 表示；檢索評估用它算命中率。可能標不完整，漏題要先確認是不是標漏（0006 有補標的規則） |
 | `reference_points` | 參考答案的要點；標「補充（筆記沒寫）」的是筆記以外的正確內容，答出來加分、沒答不扣分 |
 | `reference_answer` | 只有 self-check 有：筆記裡的答案原文。要點是程式拆句的，批改以原文為準 |
-| `misconceptions` | 確認理解題和陷阱題才有：使用者說法裡每一點的判定（正確、需要修正、錯誤） |
+| `misconceptions` | 確認理解題和陷阱題才有：使用者說法裡每一點的判定（正確、需要修正、錯誤、筆記沒寫）。筆記沒寫：說法是一條筆記裡沒有的規則，回答要指出筆記沒寫，不能同意 |
 | `grading_label` | 確認理解題和陷阱題才有：使用者說法整體的批改類別 |
 | `reference_status` | `draft`：Claude 起草，還沒核對；`verified`：我核對過；`from-notes`：取自筆記的答案；`from-solutions`：Claude 從詳解整理 |
 | `source` | self-check 和 practice 才有：題目出自哪份筆記或哪一題 |
