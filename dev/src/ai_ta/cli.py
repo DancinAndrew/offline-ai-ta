@@ -63,6 +63,8 @@ def cmd_ask(args: argparse.Namespace) -> int:
         console.print(f"  {line}")
     if not result.check.ok:
         console.print("[yellow]出處標記不完整，請對照筆記確認。[/yellow]")
+    if result.unresolved:
+        console.print("[yellow]回答裡的數字和程式計算結果對不上，請以出處 [1] 的程式計算結果為準。[/yellow]")
     if result.calculation and result.calculation.partial:
         console.print("[yellow]計算器只算了前面幾步，之後的數字沒有經過程式驗算。[/yellow]")
     elif result.calculation and result.calculation.error:
@@ -225,6 +227,7 @@ def _explain_record(item: dict, retriever: Retriever, args: argparse.Namespace, 
         "retrieved_gold": [h.chunk.chunk_id in gold for h in result.hits],
         "cited": list(result.check.cited), "citations_ok": result.check.ok,
         "refused": result.check.refused, "retries": result.retries, "retry_reasons": result.retry_reasons,
+        "unresolved": result.unresolved,
         # The check flow lists 筆記沒寫 verdicts on purpose, so only explanations are counted.
         "gap_remarks": [] if result.claim_check else evaluate.gap_remarks(result.answer),
         "history_turns": len(chain),

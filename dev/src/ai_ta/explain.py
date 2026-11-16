@@ -255,6 +255,7 @@ class ExplainResult:
     output_tokens: int | None = None
     attempts: list[str] = field(default_factory=list)
     retry_reasons: list[str] = field(default_factory=list)  # what the checks found in each rejected attempt
+    unresolved: list[str] = field(default_factory=list)     # calculation problems the last attempt still has
 
     @property
     def total_seconds(self) -> float:
@@ -300,7 +301,8 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     generation_seconds = 0.0
     prompt_tokens = output_tokens = None
     computed = calculation is not None and bool(calculation.steps) and not calculation.partial
-    for _ in range(2):
+    found: list[str] = []
+    for attempt in range(3):
         result = llm.chat(messages, options=OPTIONS, purpose="explain")
         generation_seconds += result.wall_seconds
         prompt_tokens, output_tokens = result.prompt_tokens, result.output_tokens
@@ -309,7 +311,9 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
         found = calc_problems(result.content, question, passages) if computed else []
         if check.ok and not found:
             break
-        if len(attempts) == 2:
+        # Citations get one retry. A calculation problem gets two: a single retry once fixed the opening but
+        # then multiplied the "yes" probabilities without their complements.
+        if attempt >= (2 if found else 1):
             break
         feedback = []
         if not check.ok:
@@ -324,7 +328,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
     return ExplainResult(question, attempts[-1], passages, hits, check, len(attempts) - 1, retrieval_seconds,
                          generation_seconds, route=routed, route_seconds=route_seconds, calculation=calculation,
                          prompt_tokens=prompt_tokens, output_tokens=output_tokens, attempts=attempts,
-                         retry_reasons=reasons)
+                         retry_reasons=reasons, unresolved=found)
 
 
 DECIMAL = re.compile(r"(?<![\d.])\d+\.\d+")

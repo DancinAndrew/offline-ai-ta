@@ -4,8 +4,9 @@
 """
 
 import unittest
+from unittest.mock import patch
 
-from ai_ta import calc
+from ai_ta import calc, explain, llm
 from ai_ta.explain import (CALC_HEADER, MAX_CHECK_PASSAGES, PARTIAL_NOTE, REFUSAL, TRUNCATED, ClaimCheck, ClaimVerdict,
                            calc_passage, calc_problems, check_citations, compute, render_check,
                            retrieve_for_claims)
@@ -141,6 +142,42 @@ class ComputeTest(unittest.TestCase):
         steps = calc.run("a = 2\nb = a * 3")
         self.assertEqual(calc_passage(steps, partial=True).text.splitlines()[-1], PARTIAL_NOTE)
         self.assertNotIn(PARTIAL_NOTE, calc_passage(steps).text)
+
+
+class AnswerRetryTest(unittest.TestCase):
+    """The answer loop with a fake model: how many attempts each kind of problem gets."""
+
+    QUESTION = "0.3 乘以 0.5 是多少？"
+
+    def answer(self, replies: list[str]) -> explain.ExplainResult:
+        computed = explain.Calculation("a = 0.3 * 0.5", calc.run("a = 0.3 * 0.5"), None, 0, 1.0)
+        queue = list(replies)
+
+        def fake_chat(messages, options=None, purpose=""):
+            return llm.ChatResult(queue.pop(0), "", 1.0, 10, 10)
+
+        with patch.object(explain, "route", return_value=(explain.Route(type="calculation"), 0.1)), \
+                patch.object(explain, "compute", return_value=computed), \
+                patch.object(explain.llm, "chat", side_effect=fake_chat):
+            return explain.answer(self.QUESTION, FakeRetriever({self.QUESTION: ["notes"]}))
+
+    def test_a_good_answer_is_kept_at_once(self):
+        result = self.answer(["結果是 0.15 [1]。"])
+        self.assertEqual((result.retries, result.retry_reasons, result.unresolved), (0, [], []))
+
+    def test_a_made_up_number_gets_up_to_two_retries(self):
+        result = self.answer(["結果是 0.21 [1]。", "結果是 0.25 [1]。", "結果是 0.15 [1]。"])
+        self.assertEqual((result.answer, result.retries, result.unresolved), ("結果是 0.15 [1]。", 2, []))
+        self.assertIn("0.21", result.retry_reasons[0])
+
+    def test_a_problem_left_after_two_retries_is_reported(self):
+        result = self.answer(["結果是 0.21 [1]。"] * 3)
+        self.assertEqual(result.retries, 2)
+        self.assertIn("0.21", result.unresolved[0])
+
+    def test_a_missing_citation_gets_one_retry(self):
+        result = self.answer(["結果是 0.15。", "結果是 0.15。", "結果是 0.15 [1]。"])
+        self.assertEqual((result.retries, result.retry_reasons), (1, ["citations"]))
 
 
 if __name__ == "__main__":
