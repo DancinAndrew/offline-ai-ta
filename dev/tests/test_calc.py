@@ -78,6 +78,11 @@ class ProgramTest(unittest.TestCase):
             self.assertIn(reason, str(caught.exception))
             self.assertTrue(caught.exception.rewritable)
 
+    def test_a_name_may_match_a_function(self):
+        steps = run("M = [[1, 2], [3, 4]]\ndiag = diag(M)\nlog = 3\nsum(diag) + log + log2(diag(M)[1])")
+        self.assertEqual(steps[1].text(), "diag = diag(M) = [1, 4]")
+        self.assertAlmostEqual(steps[-1].value, 5 + 3 + 2)
+
     def test_dist_gives_one_distance_per_row(self):
         self.assertEqual(run("X = [[0, 2], [3, 1]]; dist(X, [0, 1])")[-1].value, [1.0, 3.0])
         self.assertAlmostEqual(evaluate("dist(3, 5)"), 2.0)
@@ -100,7 +105,7 @@ class ProgramTest(unittest.TestCase):
 
     def test_anything_but_arithmetic_is_rejected_with_a_reason(self):
         for program, reason in (("for i in [1]: x = i", "迴圈"), ("if 1: x = 2", "if"), ("import os", "import"),
-                                ("x = y + 1", "y 還沒定義"), ("log = 3", "換一個名稱"), ("a, b = 1, 2", "一個名稱"),
+                                ("x = y + 1", "y 還沒定義"), ("a, b = 1, 2", "一個名稱"),
                                 ("x = 1 < 2", "比大小"), ("softmax(v=[1])", "照順序"), ("x = [1]; x.real", "Attribute"),
                                 ("'abc'", "文字"), ("relu", "relu(…)"), ("x = 2; y = x if x > 0 else 0", "relu(x)"),
                                 ("v = [1, 2]; [exp(a) for a in v]", "整個向量"), ("v = [1, 2]; v[0] = 3", "某一格"),

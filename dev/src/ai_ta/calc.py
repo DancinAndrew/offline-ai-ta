@@ -162,9 +162,9 @@ def evaluate(expression: str) -> float:
 
 def _run_statement(node: ast.stmt, text: str, env: dict[str, Value]) -> Step:
     if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+        # A name may match a function (`diag = diag(M)`): calls look up FUNCTIONS and names look up env,
+        # so nothing is shadowed. Rejecting it failed pr-p19 twice, since the rewrite kept the name.
         name = node.targets[0].id
-        if name.lower() in FUNCTIONS or name in CONSTANTS:
-            raise CalcError(f"第 {node.lineno} 行：{name} 是函式或常數的名稱，請換一個名稱")
         value = _check(_eval(node.value, env))
         env[name] = value
         return Step(name, ast.get_source_segment(text, node.value) or "", _plain(value), _is_literal(node.value))
