@@ -61,9 +61,10 @@ def embed_key(chunk: Chunk) -> str:
     return hashlib.sha1(chunk.embedding_text().encode("utf-8")).hexdigest()
 
 
-def connect(path: Path = config.INDEX_DB) -> sqlite3.Connection:
+def connect(path: Path = config.INDEX_DB, *, check_same_thread: bool = True) -> sqlite3.Connection:
+    """check_same_thread=False lets the web page's worker threads use it; its queue runs one request at a time."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=check_same_thread)
     conn.executescript(VECTOR_SCHEMA)
     _migrate_v1(conn)
     conn.executescript(CHUNK_SCHEMA)

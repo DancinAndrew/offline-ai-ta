@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ai_ta import explain, learner, llm, practice, review
-from ai_ta.ingest import Chunk
+from ai_ta.ingest import Chunk, PageLink
 from ai_ta.retrieve import Hit
 
 LONG = "決策樹的內容。" * 40
@@ -22,8 +22,10 @@ def chunk(name: str, text: str = LONG) -> Chunk:
 class FakeRetriever:
     def __init__(self, names: list[str]):
         self.chunks = {i: chunk(name) for i, name in enumerate(names)}
+        self.queries: list[str] = []
 
     def search(self, query: str, k: int = 5, **kwargs) -> list[Hit]:
+        self.queries.append(query)
         return [Hit(c, 1.0) for c in self.chunks.values()][:k]
 
 
@@ -45,6 +47,8 @@ def fake_explain(question, retriever, **kwargs):
 
 
 def fake_classify(text, pending):
+    if text.startswith("練"):
+        return review.Intent(action="quiz", topic=text[1:])
     if text.strip() in review.COMMANDS:
         return review.Intent(action=review.COMMANDS[text.strip()])
     if text.endswith("？"):
@@ -112,6 +116,22 @@ class SessionTest(unittest.TestCase):
         self.assertEqual([r.kind for r in replies], ["answer", "note"])
         self.assertIn("**出處**", replies[0].markdown)
         self.assertIs(self.session.pending, pending)
+
+    def test_a_named_topic_sticks_until_start(self):
+        retriever = self.session.retriever
+        self.session.handle("練決策樹")
+        self.session.handle("下一題")
+        self.assertEqual(retriever.queries[-2:], ["決策樹", "決策樹"])
+        self.assertIn("目前主題**：決策樹", self.session.status())
+        self.session.handle("開始")
+        self.assertIsNone(self.session.topic)
+
+    def test_slide_pages_become_links_when_a_link_builder_is_given(self):
+        page = PageLink("Week1/a.pdf", 3, "PDF p.3")
+        with_pages = Chunk("p", "heading", "note.md", ("Note", "p"), 2, 1, 0, 10, LONG, (page, page))
+        self.assertEqual(review.pages_markdown(with_pages, None), "（PDF p.3）")
+        self.assertEqual(review.pages_markdown(with_pages, lambda link: f"/f/{link.page}"), "（[PDF p.3](/f/3)）")
+        self.assertEqual(review.pages_markdown(chunk("a"), None), "")
 
     def test_progress_lists_practised_points(self):
         self.session.handle("開始")

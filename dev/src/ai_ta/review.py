@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from . import explain, learner, llm, practice
 from .explain import harness_text
-from .ingest import Chunk
+from .ingest import Chunk, PageLink
 from .retrieve import Hit, Retriever
 
 Action = Literal["answer", "hint", "give_up", "ask", "quiz", "progress", "search"]
@@ -81,8 +81,23 @@ class PinnedRetriever:
         return [Hit(self.chunk, 1.0)] + rest[:k - 1]
 
 
-def sources_markdown(result: explain.ExplainResult) -> str:
-    lines = explain.sources(result)
+LinkBuilder = Callable[[PageLink], str]
+
+
+def pages_markdown(chunk: Chunk, link: LinkBuilder | None) -> str:
+    """The slide pages of a section: plain labels in the terminal, links that open the PDF page on the web."""
+    first: dict[str, PageLink] = {}
+    for page in chunk.page_links:
+        first.setdefault(page.label, page)
+    if not first:
+        return ""
+    shown = [f"[{label}]({link(page)})" if link else label for label, page in first.items()]
+    return "（" + "、".join(shown) + "）"
+
+
+def sources_markdown(result: explain.ExplainResult, link: LinkBuilder | None = None) -> str:
+    lines = [f"[{n}] {result.passages[n - 1].location}{pages_markdown(result.passages[n - 1], link)}"
+             for n in result.check.cited if 1 <= n <= len(result.passages)]
     return ("\n\n**出處**\n" + "\n".join(f"- {line}" for line in lines)) if lines else ""
 
 
@@ -96,11 +111,14 @@ class Services:
 
 
 class ReviewSession:
-    def __init__(self, retriever: Retriever, *, events: Path = learner.EVENTS, services: Services | None = None):
+    def __init__(self, retriever: Retriever, *, events: Path = learner.EVENTS, services: Services | None = None,
+                 link: LinkBuilder | None = None):
         self.retriever = retriever
         self.events = events
         self.services = services or Services()
+        self.link = link
         self.pending: Pending | None = None
+        self.topic: str | None = None        # the topic the user asked for, kept for the next questions
         self.reexplained: set[str] = set()   # once per point per session
 
     # --- state -----------------------------------------------------------------------------------------
@@ -120,6 +138,17 @@ class ReviewSession:
             lines.append("輸入「開始」照建議練習，或說想練的主題。隨時可以直接問問題。")
         return Reply("opening", "\n".join(lines))
 
+    def status(self) -> str:
+        states = self.states()
+        due, weak = learner.due_points(states), learner.weak_points(states)
+        lines = [f"**到期** {len(due)}　**常錯** {len(weak)}"]
+        lines += [f"- 常錯：{s.location.split(' > ')[-1]}（{s.mastery:.0%}）" for s in weak[:LIST_LIMIT]]
+        if self.topic:
+            lines.append(f"\n**目前主題**：{self.topic}")
+        if self.pending:
+            lines.append(f"\n**等你作答**：{self.pending.quiz.question}")
+        return "\n".join(lines)
+
     # --- dispatch --------------------------------------------------------------------------------------
     def handle(self, text: str) -> list[Reply]:
         if not text.strip():
@@ -132,7 +161,12 @@ class ReviewSession:
         if intent.action == "give_up":
             return self.give_up()
         if intent.action == "quiz":
-            return self.next_question(intent.topic or None)
+            # A named topic sticks for the next questions; 「開始」 goes back to the schedule's suggestions.
+            if intent.topic:
+                self.topic = intent.topic
+            elif text.strip() == "開始":
+                self.topic = None
+            return self.next_question(self.topic)
         if intent.action == "progress":
             return [self.progress()]
         if intent.action == "search":
@@ -187,7 +221,7 @@ class ReviewSession:
         learner.record(learner.Event(pending.chunk.chunk_id, pending.chunk.location, pending.quiz.bloom_level,
                                      pending.quiz.question, text, result.label), self.events)
         state = self.states()[pending.chunk.chunk_id]
-        replies = [Reply("grade", grade_markdown(pending, result, state))]
+        replies = [Reply("grade", grade_markdown(pending, result, state, self.link))]
         if self.needs_reexplain(state):
             replies += self.reexplain(pending)
         return replies
@@ -204,13 +238,13 @@ class ReviewSession:
         question = (f"我在「{topic}」一直答錯。請換一種方式重新講解：先用段落裡的例子或一個比喻說明，"
                     f"再對回筆記的說法。要講清楚的重點：{points}")
         result = self.services.answer_question(question, PinnedRetriever(self.retriever, pending.chunk))
-        replies = [Reply("reexplain", f"**換個方式講：{topic}**\n\n{result.answer}{sources_markdown(result)}")]
+        replies = [Reply("reexplain", f"**換個方式講：{topic}**\n\n{result.answer}{sources_markdown(result, self.link)}")]
         return replies + self.next_question(chunk=pending.chunk, recheck=True)
 
     # --- questions, progress, search -------------------------------------------------------------------
     def ask(self, text: str) -> list[Reply]:
         result = self.services.answer_question(text, self.retriever)
-        replies = [Reply("answer", f"{result.answer}{sources_markdown(result)}")]
+        replies = [Reply("answer", f"{result.answer}{sources_markdown(result, self.link)}")]
         if result.unresolved:
             replies.append(Reply("note", "回答裡的數字和程式計算結果對不上，請以出處 [1] 的程式計算結果為準。"))
         if self.pending:
@@ -231,20 +265,18 @@ class ReviewSession:
     def search(self, text: str) -> Reply:
         hits = self.retriever.search(text, k=5)
         lines = ["**筆記裡的相關段落**"]
-        for hit in hits:
-            pages = "、".join(dict.fromkeys(link.label for link in hit.chunk.page_links))
-            lines.append(f"- {hit.chunk.location}{'（' + pages + '）' if pages else ''}")
+        lines += [f"- {hit.chunk.location}{pages_markdown(hit.chunk, self.link)}" for hit in hits]
         return Reply("search", "\n".join(lines))
 
 
-def grade_markdown(pending: Pending, result: practice.Grade, state: learner.PointState) -> str:
+def grade_markdown(pending: Pending, result: practice.Grade, state: learner.PointState,
+                   link: LinkBuilder | None = None) -> str:
     lines = [f"**{result.label}**"]
     lines += [f"- ✓ {part}" for part in result.correct_parts]
     lines += [f"- ✗ {part}" for part in result.wrong_parts]
     lines += ["", result.feedback, "", "**參考要點**"]
     lines += [f"- {point}" for point in pending.quiz.reference_points]
-    pages = "、".join(dict.fromkeys(link.label for link in pending.chunk.page_links))
-    lines += ["", f"_出處：{pending.chunk.location}{'（' + pages + '）' if pages else ''}；"
+    lines += ["", f"_出處：{pending.chunk.location}{pages_markdown(pending.chunk, link)}；"
                   f"掌握度 {state.mastery:.0%}，下次複習 {state.due.astimezone():%m/%d %H:%M}_"]
     return "\n".join(lines)
 
