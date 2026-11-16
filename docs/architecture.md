@@ -119,7 +119,7 @@ Ollama：qwen3.5:9b ＋ qwen3-embedding:0.6b（OLLAMA_NO_CLOUD=1）
 
 ## 7. 離線驗收清單
 
-用 `dev/tools/offline_check.py` 跑，報告存在 `data/logs/`。2026-11-14 的結果：
+用 `dev/tools/offline_check.py` 跑，報告存在 `data/logs/`。2026-11-14（Ollama 0.40.10）的結果如下；2026-11-16 Ollama 自動升級到 0.40.16 後重跑：仍關閉雲端，四種模式正常，跑的期間沒有任何對外連線（結果 PASS）。但 App 每小時的更新檢查和伺服器的推薦清單是週期性的，剛好不在這次的時間內，所以關掉 Wi-Fi 那一輪仍然要跑。
 
 - [x] Ollama 用 `server.json` 關閉雲端：重啟後的紀錄寫著「Ollama cloud disabled: true」。
 - [x] 嵌入模型事先下載到本機。
