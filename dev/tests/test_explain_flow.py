@@ -132,6 +132,15 @@ class ComputeTest(unittest.TestCase):
         self.assertEqual(len(found), 1)
         self.assertIn("0.1323、0.852", found[0])
 
+    def test_the_first_sentence_must_not_borrow_another_examples_result(self):
+        notes = Chunk("notes", "heading", "note.md", ("Note",), 2, 1, 0, 10, "變式的後驗約 0.269755。", ())
+        passages = [calc_passage(calc.run("post = 0.054 / 0.152")), notes]
+        found = calc_problems("流失後驗約 0.269755 [2]。", "q", passages)
+        self.assertEqual(len(found), 1)
+        self.assertIn("第一句的 0.269755", found[0])
+        # Later sentences may quote the notes.
+        self.assertEqual(calc_problems("流失後驗約 0.355 [1]。筆記的變式是 0.269755 [2]。", "q", passages), [])
+
     def test_calc_answers_must_not_open_with_a_refusal(self):
         passages = [calc_passage(calc.run("a = 0.3 * 0.5"))]
         for answer in ("根據提供的筆記，無法直接回答此題的計算結果，因為 [1] 不同。", f"{REFUSAL}這兩個機率 [1]。"):

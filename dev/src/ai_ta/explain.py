@@ -346,11 +346,22 @@ def calc_problems(answer: str, question: str, passages: list[Chunk]) -> list[str
     first = SENTENCE_END.split(answer.strip(), maxsplit=1)[0]
     if REFUSAL in first or CANNOT_ANSWER.search(first):
         found.append("開頭說無法回答，但 [1] 已經用題目的數字算好了")
-    known = [float(n) for n in DECIMAL.findall("\n".join([question] + [p.text for p in passages]))]
-    stray = [n for n in dict.fromkeys(DECIMAL.findall(answer)) if not _rounds_from(n, known)]
+    # The first sentence is the direct answer, so its numbers must be the calculator's or the question's:
+    # one answer opened with the result of a different worked example in the notes. Later sentences may
+    # quote the notes, e.g. a handout's intermediate result that disagrees with the calculator.
+    computed = _numbers("\n".join([question] + [p.text for p in passages if p.chunk_id == "calc"]))
+    head = [n for n in dict.fromkeys(DECIMAL.findall(first)) if not _rounds_from(n, computed)]
+    if head:
+        found.append(f"第一句的 {'、'.join(head)} 不是程式算出的數字，可能是筆記裡別的例子")
+    known = computed + _numbers("\n".join(p.text for p in passages))
+    stray = [n for n in dict.fromkeys(DECIMAL.findall(answer)) if n not in head and not _rounds_from(n, known)]
     if stray:
         found.append(f"{'、'.join(stray)} 不是程式算出的數字，題目和筆記裡也沒有")
     return found
+
+
+def _numbers(text: str) -> list[float]:
+    return [float(n) for n in DECIMAL.findall(text)]
 
 
 def _rounds_from(token: str, known: list[float]) -> bool:
