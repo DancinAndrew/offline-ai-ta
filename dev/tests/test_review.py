@@ -133,6 +133,17 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(review.pages_markdown(with_pages, lambda link: f"/f/{link.page}"), "（[PDF p.3](/f/3)）")
         self.assertEqual(review.pages_markdown(chunk("a"), None), "")
 
+    def test_a_point_missed_in_this_session_comes_back_when_due_even_with_a_topic(self):
+        self.session.handle("練決策樹")
+        missed = self.session.pending.chunk.chunk_id
+        self.session.handle("隨便猜")
+        due_now = lambda states, now=None: list(states.values())   # as if the minute has passed
+        with patch.object(review.learner, "due_points", side_effect=due_now):
+            self.session.handle("下一題")
+        self.assertEqual(self.session.pending.chunk.chunk_id, missed)
+        kinds = [r.kind for r in self.session.handle("又猜錯")]
+        self.assertEqual(kinds, ["grade", "reexplain", "question"])
+
     def test_progress_lists_practised_points(self):
         self.session.handle("開始")
         self.session.handle("挑增益最大的特徵")

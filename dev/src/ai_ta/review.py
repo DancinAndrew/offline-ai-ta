@@ -120,6 +120,7 @@ class ReviewSession:
         self.pending: Pending | None = None
         self.topic: str | None = None        # the topic the user asked for, kept for the next questions
         self.reexplained: set[str] = set()   # once per point per session
+        self.missed: set[str] = set()        # points answered wrong in this session
 
     # --- state -----------------------------------------------------------------------------------------
     def states(self) -> dict[str, learner.PointState]:
@@ -176,13 +177,18 @@ class ReviewSession:
     # --- practice --------------------------------------------------------------------------------------
     def pick_point(self, topic: str | None) -> Chunk | None:
         states = self.states()
+        by_id = {c.chunk_id: c for c in self.retriever.chunks.values()}
+        # A point missed in this session comes back once the schedule says it is due (about a minute after
+        # a miss), even when a topic is set; a second miss is what triggers the re-explanation.
+        for state in learner.due_points(states):
+            if state.knowledge_point in self.missed and state.knowledge_point in by_id:
+                return by_id[state.knowledge_point]
         if topic:
             candidates = [h.chunk for h in self.retriever.search(topic, k=8)
                           if len(h.chunk.text) >= MIN_QUIZ_SECTION_CHARS]
             # The relevant section practiced least often.
             return min(candidates, key=lambda c: states[c.chunk_id].attempts if c.chunk_id in states else 0,
                        default=None)
-        by_id = {c.chunk_id: c for c in self.retriever.chunks.values()}
         for state in learner.due_points(states) + learner.weak_points(states):
             if state.knowledge_point in by_id:
                 return by_id[state.knowledge_point]
@@ -221,6 +227,8 @@ class ReviewSession:
         learner.record(learner.Event(pending.chunk.chunk_id, pending.chunk.location, pending.quiz.bloom_level,
                                      pending.quiz.question, text, result.label), self.events)
         state = self.states()[pending.chunk.chunk_id]
+        if result.label != "正確":
+            self.missed.add(pending.chunk.chunk_id)
         replies = [Reply("grade", grade_markdown(pending, result, state, self.link))]
         if self.needs_reexplain(state):
             replies += self.reexplain(pending)

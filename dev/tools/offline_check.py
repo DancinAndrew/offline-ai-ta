@@ -1,7 +1,9 @@
 """Offline acceptance check (docs/architecture.md section 7).
 
-Runs every mode (search, explain, practice, progress) while listing the network sockets of
-Ollama and the AI TA every half second, and reports any connection to another machine.
+Runs every mode (search, explain, practice, progress, a review session) and starts the web page,
+while listing the network sockets of Ollama and the AI TA every half second, and reports any
+connection to another machine. The web step loads the page and every asset it links to; whether
+the browser itself fetches anything else was checked in a browser (architecture.md section 7).
 Practice answers go to a temporary learner folder, so the real practice history is untouched.
 
 Run it from the repo root, once with the network on and once with Wi-Fi turned off:
@@ -22,6 +24,8 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -33,7 +37,10 @@ STEPS = [
     ("practice", ["quiz", "--topic", "決策樹 資訊增益", "--n", "1"],
      "資訊增益是分割前的熵減去分割後的加權熵，選增益最大的特徵。\n"),
     ("progress", ["progress"], None),
+    ("review", ["review"], "我想練決策樹\n資訊增益是分割前的熵減去分割後的加權熵，選增益最大的特徵。\n進度\n結束\n"),
 ]
+ASSET = re.compile(r'(?:src|href)="(/[^"]+)"')
+OUTSIDE = re.compile(r'(?:src|href)="(https?://[^"]+)"')
 
 
 def network_reachable() -> bool:
@@ -75,6 +82,54 @@ class Watcher(threading.Thread):
             time.sleep(0.5)
 
 
+def fetch(url: str) -> tuple[int, str]:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))   # never through a proxy
+    try:
+        with opener.open(url, timeout=10) as response:
+            return response.status, response.read().decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError) as exc:
+        return getattr(exc, "code", 0) or 0, ""
+
+
+def check_web(env: dict[str, str], report) -> bool:
+    """Start the web page, load it and the assets it links to, and stop it."""
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    base = f"http://127.0.0.1:{port}"
+    started = time.perf_counter()
+    server = subprocess.Popen([sys.executable, "-m", "ai_ta", "web", "--port", str(port)], env=env, cwd=REPO,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    try:
+        status, html = 0, ""
+        while time.perf_counter() - started < 120 and status != 200:
+            if server.poll() is not None:
+                break
+            time.sleep(1)
+            status, html = fetch(base + "/")
+        assets = sorted(set(ASSET.findall(html)))
+        failed_assets = [a for a in assets if fetch(base + a)[0] != 200]
+        outside = sorted(set(OUTSIDE.findall(html)))
+        theme_status, theme = fetch(base + "/theme.css")
+        google_fonts = "fonts.googleapis" in theme
+        ok = status == 200 and theme_status == 200 and not failed_assets and not outside and not google_fonts
+        report(f"== web: page {status}, {len(assets) - len(failed_assets)}/{len(assets)} assets, theme {theme_status}, "
+               f"{time.perf_counter() - started:.1f} s")
+        report(f"   outside links in the page: {', '.join(outside) or 'none'}; Google fonts in the theme: "
+               f"{'yes' if google_fonts else 'no'}")
+        if failed_assets:
+            report("   failed assets: " + ", ".join(failed_assets[:5]))
+        if status != 200 and server.poll() is not None:
+            report("   stderr: " + (server.stderr.read() or "")[-400:])
+        return ok
+    finally:
+        server.terminate()
+        try:
+            server.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            server.kill()
+
+
 def main() -> int:
     lines: list[str] = []
 
@@ -99,6 +154,8 @@ def main() -> int:
         if result.returncode:
             failed.append(label)
             report("   stderr: " + result.stderr.strip()[-400:])
+    if not check_web(env, report):
+        failed.append("web")
     watcher.stop.set()
     watcher.join()
     report(f"network samples: {watcher.samples}")

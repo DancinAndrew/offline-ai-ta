@@ -13,7 +13,7 @@ AI TA 的程式、harness 和評估。架構見 [docs/architecture.md](../docs/a
 
 - **Ollama**：先安裝，並下載模型：`qwen3.5:9b`、`bge-m3`、`qwen3-embedding:0.6b`、`embeddinggemma-2:270m`。
 - **離線設定**：`~/.ollama/server.json` 寫入 `{"disable_ollama_cloud": true}`，然後重啟 Ollama。
-- **Python 環境**：用上層資料夾的共用 uv 環境（`../.venv`），需要 `pydantic`、`fsrs`、`rich`、`requests`、`numpy`。
+- **Python 環境**：用上層資料夾的共用 uv 環境（`../.venv`），需要 `pydantic`、`fsrs`、`rich`、`requests`、`numpy`；網頁介面另外需要 `gradio`（6.x）。
 
 以下指令都在 repo 根目錄執行。
 
@@ -33,6 +33,10 @@ PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta ask "Minimize FPR 等於 maximiz
 PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta quiz --topic "決策樹" --n 3
 # 學習進度：掌握度、下次複習、常錯的知識點
 PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta progress
+# 一段複習（終端機）：練習到期和常錯的知識點、錯題換方式重講、隨時提問；輸入「結束」離開
+PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta review
+# 一段複習（本機網頁，只聽 127.0.0.1）：開 http://127.0.0.1:7860，或加 --open 自動開瀏覽器
+PYTHONPATH=dev/src ../.venv/bin/python -m ai_ta web
 
 # 測試
 PYTHONPATH=dev/src ../.venv/bin/python -m unittest discover -s dev/tests

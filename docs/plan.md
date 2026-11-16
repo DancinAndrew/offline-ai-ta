@@ -153,6 +153,12 @@ AI-TA/                      GitHub：DancinAndrew/offline-ai-ta（公開）
 - 第 0–3 步已完成，第 4 步取消。
 - 第 5 步只剩斷網驗收和核對參考答案。
 - 第 6 步進行中，範圍見 [0007](decisions/0007-review-session.md)。
+  - 完成：
+    - 複習核心（`review.py`）和終端機指令 `ai_ta review`。
+    - 本機網頁 `ai_ta web`（Gradio 6.32）。
+    - 斷網驗收加上複習和網頁兩步（2026-11-16 連網跑一次：PASS，沒有對外連線）。
+    - 流程記在 [architecture.md](architecture.md) 4.5，離線設定記在第 7 節。
+  - 還差：我在網頁上走完一段複習（練習、錯題重講、提問各至少一次），以及關掉 Wi-Fi 再走一次。
 
 - 第 1 步：找到 16 個期中課程問題，存成 `dev/eval/midterm-baseline.jsonl`；發現摘要在 `research/notes/internal/ollama-app-baseline.md`。
 - 第 2 步：8 個主題的統整在 `research/synthesis/`；跨主題結論、建議架構和待決定的事在 [research/synthesis/summary.md](../research/synthesis/summary.md)。
