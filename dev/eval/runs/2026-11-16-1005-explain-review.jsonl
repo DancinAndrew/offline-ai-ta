@@ -1,31 +1,31 @@
-{"meta": {"run": "2026-11-16-1005-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-14-1332-explain.jsonl", "harness": "改動 1–8（commit 166c5ee）", "ollama_note": "Ollama 0.40.16 上的正式基準，B 類後續各項都和它比", "speed_note": "這輪機器很空，回答步驟的速度接近 1118。", "summary": {"全部": {"正確": 27, "部分正確": 7, "錯誤": 0, "題數": 34, "正確_wilson95": [0.63, 0.9], "正確或部分正確_wilson95": [0.9, 1.0]}, "midterm-baseline": {"正確": 10, "部分正確": 6, "錯誤": 0, "題數": 16, "正確_wilson95": [0.39, 0.82], "正確或部分正確_wilson95": [0.81, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 17, "部分正確": 1, "錯誤": 0, "題數": 18, "正確_wilson95": [0.74, 0.99], "正確或部分正確_wilson95": [0.82, 1.0]}, "self-check": {"正確": 10, "部分正確": 0, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
+{"meta": {"run": "2026-11-16-1005-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-14-1332-explain.jsonl", "harness": "改動 1–8（commit 166c5ee）", "ollama": "0.40.16", "role_in_series": "0.40.16 上的正式基準，B 類後續各項都和它比", "summary": {"全部": {"正確": 27, "部分正確": 7, "錯誤": 0, "題數": 34, "正確_wilson95": [0.63, 0.9], "正確或部分正確_wilson95": [0.9, 1.0]}, "midterm-baseline": {"正確": 10, "部分正確": 6, "錯誤": 0, "題數": 16, "正確_wilson95": [0.39, 0.82], "正確或部分正確_wilson95": [0.81, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 17, "部分正確": 1, "錯誤": 0, "題數": 18, "正確_wilson95": [0.74, 0.99], "正確或部分正確_wilson95": [0.82, 1.0]}, "self-check": {"正確": 10, "部分正確": 0, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
 {"id": "mb-04", "verdict": "正確", "failure": [], "notes": "公式、先驗小的影響、兩個條件機率不能互換。"}
 {"id": "mb-05", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
-{"id": "mb-06", "verdict": "部分正確", "failure": ["教學", "檢索"], "notes": "開頭說明段落沒有小學生比喻（記為拒答），再講定義和 0.21；結尾又多一句同樣的附註。筆記其實有小學生版，是檢索沒找到。"}
+{"id": "mb-06", "verdict": "部分正確", "failure": ["教學", "檢索"], "notes": "開頭說明檢索到的段落沒有小學生比喻（記為拒答，算合理的部分拒答），再講定義和 0.21 的算法；筆記其實有小學生版，是檢索沒找到。"}
 {"id": "mb-07", "verdict": "正確", "failure": [], "notes": "比較各類後驗取最大，附垃圾郵件 0.974 的例子。"}
 {"id": "mb-08", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
-{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "整句判需要修正：KNN 對、Naive Bayes 要估機率。"}
+{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "和前幾輪相同（回到整句判需要修正）。"}
 {"id": "mb-10", "verdict": "正確", "failure": [], "notes": "例子 (1,2)、(4,6) 和平方的影響。"}
 {"id": "mb-11", "verdict": "正確", "failure": [], "notes": "p ≥ 1 所以可以大於 2。"}
-{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度和 1 − cosθ、0.707 和 0.293 的例子。"}
-{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索", "生成"], "notes": "抓到「一定是二元樹」並判錯誤；仍沒說 CART 一律二元切分。"}
-{"id": "mb-14", "verdict": "部分正確", "failure": ["生成"], "notes": "不同子樹各自挑特徵；但把「同一條路徑重複使用沒有新資訊，所以通常不會發生」講成通則，沒提數字特徵可以換門檻再切，也沒說兩個子樹可能挑到同一個。", "vs_previous": "正確 → 部分正確"}
-{"id": "mb-15", "verdict": "部分正確", "failure": ["教學"], "notes": "說明兩個子樹各自評估剩下的特徵；沒直接回答「不一定都用心情」。678 字，超過 600 字。"}
-{"id": "mb-16", "verdict": "部分正確", "failure": ["生成"], "notes": "這輪把「不會重複選同一個特徵」判需要修正；但「理論上切乾淨」的改正說錯了（說類別特徵不能分組再切，也沒提衝突標籤）。914 字，改正說明沒有照規則只寫一句。"}
-{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "計算器算出 0.970951；多一句提醒不要套到三類的例子。"}
-{"id": "mb-18", "verdict": "部分正確", "failure": ["教學"], "notes": "逐個說明 S、c、p_c、A、v、權重和 H(S_v)，還用分類錢的比喻；仍沒解釋負號和 log₂。478 字。"}
-{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "這輪走一般回答，答案正確；最後一句關於選項的話有點混亂。"}
+{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度和 1 − cosθ 的差別，附 0.707／0.293 的例子。"}
+{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索", "生成"], "notes": "拆出「切出來一定是二元樹」並判錯誤，抓到使用者的疑問；仍沒說 CART 一律二元切分。"}
+{"id": "mb-14", "verdict": "部分正確", "failure": ["生成"], "notes": "說明不同子樹各自挑特徵；但又把「同一條路徑上重複使用特徵分不出新東西，所以通常不會發生」講成通則，沒提數字特徵可以換門檻再切，也沒說不同子樹可能挑到同一個。", "vs_previous": "正確 → 部分正確"}
+{"id": "mb-15", "verdict": "部分正確", "failure": ["教學"], "notes": "說明子樹各自評估剩下的特徵；但沒直接回答「不一定都用心情」，又把上一題的二元樹問題一起回答，678 字，超過 600 字。"}
+{"id": "mb-16", "verdict": "部分正確", "failure": ["生成"], "notes": "這次把「不會重複選同一個特徵」判需要修正，說明段落沒有這條規定。但第一句的改正說明否定「類別也可以分組切」（使用者是對的），也沒點出特徵相同、標籤不同的資料分不開；914 字，太長。"}
+{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "計算器算出 0.970951；最後一句多扯到三類的動物題。"}
+{"id": "mb-18", "verdict": "部分正確", "failure": ["教學"], "notes": "逐個說明 S、c、p_c、A、v、權重和 H(S_v)，用「把錢依顏色分類」比喻資訊增益；但沒解釋負號和 log₂。這次沒有把熵說成猜錯機率。"}
+{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "等於最大化 TNR；最後一句扯到 Guiding Note 選擇題的情境，略多餘。"}
 {"id": "sc-01", "verdict": "正確", "failure": [], "notes": "f、g 的說明正確。"}
 {"id": "sc-04", "verdict": "正確", "failure": [], "notes": "錯的偽標籤一輪輪累積。"}
-{"id": "sc-07", "verdict": "正確", "failure": ["生成"], "notes": "計算器仍失敗（不重寫）；回答照筆記寫，內容正確。"}
-{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "先驗小、偽陽性多。"}
+{"id": "sc-07", "verdict": "正確", "failure": ["生成"], "notes": "計算器仍因 if 判斷失敗（不重寫）；回答照筆記寫，內容正確。"}
+{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "先驗小、偽陽性多，引用筆記原句。"}
 {"id": "sc-14", "verdict": "正確", "failure": [], "notes": "p=1 曼哈頓、p=2 歐式。"}
-{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同。"}
+{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同，對應 TPR 和 TNR。"}
 {"id": "sc-20", "verdict": "正確", "failure": [], "notes": "Pearson 只量直線、U 形抵銷；沒提互資訊。"}
-{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "cross-entropy ≥ 熵、訓練時下降。"}
-{"id": "sc-27", "verdict": "正確", "failure": [], "notes": "Copy-on-Write、Fare 沒被改、正確寫法。", "vs_previous": "部分正確 → 正確"}
-{"id": "sc-30", "verdict": "正確", "failure": [], "notes": "用訓練時的縮放器 transform。"}
+{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "cross-entropy ≥ 熵、相同時才相等、訓練時下降。"}
+{"id": "sc-27", "verdict": "正確", "failure": [], "notes": "Copy-on-Write、Fare 沒被改、正確寫法；這次沒有把 Age 的數字混進來。", "vs_previous": "部分正確 → 正確"}
+{"id": "sc-30", "verdict": "正確", "failure": [], "notes": "用訓練時 fit 好的縮放器 transform，理由正確。"}
 {"id": "tr-01", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
 {"id": "tr-04", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
 {"id": "tr-07", "verdict": "正確", "failure": [], "notes": "和前幾輪相同。"}
-{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "改回 4 項說法後，「KNN 只是比距離，所以單位不同也不用標準化」合成一句，理由回到收入差蓋過年齡差、最近鄰翻轉。"}
+{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "回到整句判錯誤，理由是單位大的特徵會主導距離（1354、0035 拆句時的錯誤理由沒有再出現）。"}
