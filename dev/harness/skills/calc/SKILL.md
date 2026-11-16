@@ -18,7 +18,6 @@
   - 列是真實時：recall 是 `diag(M) / rowsum(M)`，precision 是 `diag(M) / colsum(M)`，每一類的真實筆數是 `rowsum(M)`。
   - 列是預測時：兩個分母對調，每一類的真實筆數是 `colsum(M)`。
   - 總筆數是 `sum(rowsum(M))`。
-  - weighted 平均不管是 precision、recall 還是 F1，都用每一類的真實筆數加權：`sum(真實筆數 * 每一類的分數) / 總筆數`。不要用被預測的筆數加權。
 - 可以用 `+ - * / **`、`@`（矩陣乘向量）、`v[0]`（取第幾個，從 0 開始），以及這些函式：`log`（自然對數）、`log2`、`log10`、`sqrt`、`exp`、`abs`、`sum`、`mean`、`max`、`min`、`dot`、`norm`、`prod`（全部相乘）、`bernoulli`（是／否特徵在某一類的機率）、`dist`（直線距離）、`diag`（矩陣的對角線）、`rowsum`（矩陣每一列的加總）、`colsum`（每一欄的加總）、`relu`、`sigmoid`、`softmax`。函式可以直接用在整個向量上，例如 `exp(v)`、`relu(v)`。
 - 不能用迴圈、`if`、`[… for …]`、`print`、`import`，也不能改向量裡的某一格。要比大小或做判斷時，把每個值都算出來，判斷留給回答。
 - 要先比大小才能決定下一步的題目（例如分群、最近鄰），只算出要比較的值就停，不要往下算。很多點到同一個點的距離用一行算完：`dist(X, c)`，X 是每一列一個點的矩陣（見例子三）。
