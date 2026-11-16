@@ -1,0 +1,62 @@
+{
+  "version": "074e119",
+  "ollama": "0.40.16",
+  "k": 4,
+  "sets": [
+    "midterm-baseline",
+    "self-check",
+    "traps",
+    "practice"
+  ],
+  "split": "dev",
+  "questions": 34,
+  "scores": [
+    {
+      "chunking": "heading",
+      "method": "vector",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.8823529411764706,
+      "mrr": 0.6470588235294118,
+      "misses": [
+        "mb-06",
+        "mb-07",
+        "mb-17",
+        "pr-p01"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "hybrid",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.8235294117647058,
+      "mrr": 0.6519607843137254,
+      "misses": [
+        "mb-05",
+        "mb-07",
+        "mb-09",
+        "mb-17",
+        "mb-19",
+        "sc-20"
+      ]
+    },
+    {
+      "chunking": "heading",
+      "method": "keyword",
+      "model": "qwen3-embedding:0.6b",
+      "recall_at_k": 0.7058823529411765,
+      "mrr": 0.5759803921568627,
+      "misses": [
+        "mb-05",
+        "mb-06",
+        "mb-09",
+        "mb-13",
+        "mb-15",
+        "mb-17",
+        "mb-18",
+        "mb-19",
+        "sc-20",
+        "pr-p01"
+      ]
+    }
+  ]
+}
