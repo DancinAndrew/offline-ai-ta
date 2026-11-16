@@ -191,6 +191,17 @@ class ThinkStepsTest(unittest.TestCase):
         self.assertEqual((options["temperature"], options["num_predict"]), (0.6, 1200 + config.THINK_EXTRA_TOKENS))
 
 
+class FallbackTimingTest(unittest.TestCase):
+    def test_a_failed_check_still_counts_in_the_time(self):
+        routed = explain.Route(type="check-understanding", claims=["a 是 b"])
+        failed = llm.StructuredOutputError("check: invalid", seconds=300.0)
+        with patch.object(explain, "route", return_value=(routed, 0.5)), \
+                patch.object(explain, "check_claims", side_effect=failed), \
+                patch.object(explain.llm, "chat", return_value=llm.ChatResult("a 不是 b [1]。", "", 2.0, 10, 10)):
+            result = explain.answer("a 是 b 嗎？", FakeRetriever({"a 是 b 嗎？": ["notes"], "a 是 b": ["notes"]}))
+        self.assertEqual(result.generation_seconds, 302.0)
+
+
 class AnswerRetryTest(unittest.TestCase):
     """The answer loop with a fake model: how many attempts each kind of problem gets."""
 

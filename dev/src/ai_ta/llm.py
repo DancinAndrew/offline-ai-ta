@@ -21,7 +21,15 @@ class OllamaError(RuntimeError):
 
 
 class StructuredOutputError(RuntimeError):
-    """The model did not return output matching the schema, even after a retry."""
+    """The model did not return output matching the schema, even after a retry.
+
+    seconds is the time those attempts took, so a caller that falls back can still count it: a claim
+    check that thought until its token limit spent 13 minutes and the timing showed none of it.
+    """
+
+    def __init__(self, message: str, seconds: float = 0.0):
+        super().__init__(message)
+        self.seconds = seconds
 
 
 @dataclass(frozen=True)
@@ -117,7 +125,7 @@ def structured(messages: list[dict[str, str]], schema: type[BaseModel], *, tempe
             return schema.model_validate_json(result.content), seconds
         except ValidationError as exc:
             last_error = str(exc)
-    raise StructuredOutputError(f"{purpose}: invalid output after a retry: {last_error[:300]}")
+    raise StructuredOutputError(f"{purpose}: invalid output after a retry: {last_error[:300]}", seconds)
 
 
 def _log(record: dict[str, Any]) -> None:

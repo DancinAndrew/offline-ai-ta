@@ -67,8 +67,8 @@ def route(question: str) -> tuple[Route | None, float]:
                 {"role": "user", "content": question}]
     try:
         return llm.structured(messages, Route, temperature=0.0, purpose="route", num_predict=400)
-    except llm.StructuredOutputError:
-        return None, 0.0
+    except llm.StructuredOutputError as exc:
+        return None, exc.seconds
 
 
 # Calculation programs: deterministic, and capped so a runaway answer is cut off early.
@@ -302,6 +302,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
            retrieval_query: str | None = None, use_router: bool = True) -> ExplainResult:
     routed, route_seconds = route(question) if use_router else (None, 0.0)
 
+    failed_check_seconds = 0.0
     if routed and routed.type == "check-understanding" and routed.claims:
         started = time.perf_counter()
         hits = retrieve_for_claims(retriever, retrieval_query or question, routed.claims, k)
@@ -312,8 +313,8 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
             text = render_check(judged, len(passages))
             return ExplainResult(question, text, passages, hits, check_citations(text, len(passages)), 0,
                                  retrieval_seconds, seconds, routed, route_seconds, claim_check=judged)
-        except llm.StructuredOutputError:
-            pass  # fall back to a normal explanation below
+        except llm.StructuredOutputError as exc:
+            failed_check_seconds = exc.seconds  # fall back to a normal explanation below; the time still counts
 
     started = time.perf_counter()
     hits = search_passages(retriever, retrieval_query or question, question, k)
@@ -333,7 +334,7 @@ def answer(question: str, retriever: Retriever, *, k: int = 4, history: list[dic
 
     attempts: list[str] = []
     reasons: list[str] = []
-    generation_seconds = 0.0
+    generation_seconds = failed_check_seconds
     prompt_tokens = output_tokens = None
     computed = calculation is not None and bool(calculation.steps) and not calculation.partial
     found: list[str] = []
