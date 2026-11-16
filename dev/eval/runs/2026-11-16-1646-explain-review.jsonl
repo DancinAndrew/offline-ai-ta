@@ -1,0 +1,31 @@
+{"meta": {"run": "2026-11-16-1646-explain.jsonl", "reviewer": "Claude Opus 5.5 (Claude Code)", "role": "輔助評審的初評，不是最終分數（decision 0003：最終以使用者盲評為準）", "labels": "正確／部分正確／錯誤", "failure_types": "檢索、生成、出處、教學", "compared_with": "2026-11-16-1005-explain.jsonl", "harness": "改動 1–12（commit 83a5569）", "ollama": "0.40.16", "temperature": 0.0, "role_in_series": "改動 9–12 之後的 34 題基準", "note": "和之前各輪一字不差的 12 題沿用原本的判定", "summary": {"全部": {"正確": 26, "部分正確": 8, "錯誤": 0, "題數": 34, "正確_wilson95": [0.6, 0.88], "正確或部分正確_wilson95": [0.9, 1.0]}, "midterm-baseline": {"正確": 10, "部分正確": 6, "錯誤": 0, "題數": 16, "正確_wilson95": [0.39, 0.82], "正確或部分正確_wilson95": [0.81, 1.0]}, "新增題（self-check、traps、practice）": {"正確": 16, "部分正確": 2, "錯誤": 0, "題數": 18, "正確_wilson95": [0.67, 0.97], "正確或部分正確_wilson95": [0.82, 1.0]}, "self-check": {"正確": 9, "部分正確": 1, "錯誤": 0}, "traps": {"正確": 4, "部分正確": 0, "錯誤": 0}, "practice": {"正確": 3, "部分正確": 1, "錯誤": 0}}, "kept_private": ["pr-p01", "pr-p19", "pr-p33", "pr-p42"]}}
+{"id": "mb-04", "verdict": "正確", "failure": [], "notes": "公式、0.008、不能互換、recall／precision。"}
+{"id": "mb-05", "verdict": "正確", "failure": [], "notes": "判成確認理解：分類器對、和 KNN 是同一概念錯（說明原理不同）、監督式對。"}
+{"id": "mb-06", "verdict": "部分正確", "failure": ["教學"], "notes": "定義照小學生版的說法，也有癌症例子的道理；但這輪完全沒有比喻，還多了全機率公式。"}
+{"id": "mb-07", "verdict": "部分正確", "failure": ["教學"], "notes": "算後驗、取最大、0.9739 都對，但沒說分母相同可以省略、只要比大小，只說除以總和得到真實機率。", "vs_previous": "正確 → 部分正確"}
+{"id": "mb-08", "verdict": "正確", "failure": [], "notes": "和 1005 一字不差。"}
+{"id": "mb-09", "verdict": "正確", "failure": [], "notes": "和 1005 一字不差。"}
+{"id": "mb-10", "verdict": "正確", "failure": [], "notes": "定義、(1,2)、(4,6) 的例子和平方的影響。"}
+{"id": "mb-11", "verdict": "正確", "failure": [], "notes": "和 1101 一字不差。"}
+{"id": "mb-12", "verdict": "正確", "failure": [], "notes": "相似度和 1 − cosθ、0.707／0.293。"}
+{"id": "mb-13", "verdict": "部分正確", "failure": ["檢索"], "notes": "和 1005 一字不差：沒說 CART 一律二元切分。"}
+{"id": "mb-14", "verdict": "部分正確", "failure": ["生成"], "notes": "子樹可用不同特徵對，但把「同一特徵不能再切」講成通則。"}
+{"id": "mb-15", "verdict": "部分正確", "failure": ["生成"], "notes": "子樹各自挑特徵對，但又說筆記指出「不能重複使用同一特徵」，講成通則。458 字。"}
+{"id": "mb-16", "verdict": "部分正確", "failure": ["生成", "檢索"], "notes": "「不重複選特徵」判需要修正、指出筆記沒寫這條規則（對）；「理論上可以切乾淨」也判需要修正，但理由沒提特徵相同、標籤不同就分不開。667 字。"}
+{"id": "mb-17", "verdict": "正確", "failure": [], "notes": "0.970951；說段落裡的 1.521928 是另一題。"}
+{"id": "mb-18", "verdict": "正確", "failure": [], "notes": "和 1101 一字不差。", "vs_previous": "部分正確 → 正確"}
+{"id": "mb-19", "verdict": "正確", "failure": [], "notes": "等於最大化 TNR，分母說明正確。"}
+{"id": "sc-01", "verdict": "正確", "failure": [], "notes": "f、g 與為什麼只是近似。"}
+{"id": "sc-04", "verdict": "正確", "failure": [], "notes": "和 1101 一字不差。"}
+{"id": "sc-07", "verdict": "正確", "failure": [], "notes": "計算器這輪用 dist(X, c) 一次算完距離，沒有報錯；回答對照距離說明分群、新中心和收斂。"}
+{"id": "sc-11", "verdict": "正確", "failure": [], "notes": "和 1101 一字不差。"}
+{"id": "sc-14", "verdict": "正確", "failure": [], "notes": "p=1 曼哈頓、p=2 歐式，並附公式。"}
+{"id": "sc-17", "verdict": "正確", "failure": [], "notes": "兩個情境怕的錯誤不同，TPR 與 TNR。"}
+{"id": "sc-20", "verdict": "正確", "failure": [], "notes": "只量直線關係，y = x² 的例子。"}
+{"id": "sc-23", "verdict": "正確", "failure": [], "notes": "和 1101 一字不差。"}
+{"id": "sc-27", "verdict": "正確", "failure": [], "notes": "Copy-on-Write 與正確寫法，沒有混進其他欄位。"}
+{"id": "sc-30", "verdict": "部分正確", "failure": ["生成"], "notes": "做法對，但仍把「每欄變成 0 或 1」講成一般情況，還說是資料洩漏。", "vs_previous": "正確 → 部分正確"}
+{"id": "tr-01", "verdict": "正確", "failure": [], "notes": "和 1005 一字不差。"}
+{"id": "tr-04", "verdict": "正確", "failure": [], "notes": "和 1005 一字不差。"}
+{"id": "tr-07", "verdict": "正確", "failure": [], "notes": "TPR 對、FPR 的分母錯、低 FPR 不等於高 precision。"}
+{"id": "tr-10", "verdict": "正確", "failure": [], "notes": "和 1005 一字不差。"}
