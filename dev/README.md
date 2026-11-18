@@ -13,7 +13,10 @@ AI TA 的程式、harness 和評估。架構見 [docs/architecture.md](../docs/a
 
 - **Ollama**：先安裝，並下載模型：`qwen3.5:9b`、`bge-m3`、`qwen3-embedding:0.6b`、`embeddinggemma-2:270m`。
 - **離線設定**：`~/.ollama/server.json` 寫入 `{"disable_ollama_cloud": true}`，然後重啟 Ollama。
-- **Python 環境**：用上層資料夾的共用 uv 環境（`../.venv`），需要 `pydantic`、`fsrs`、`rich`、`requests`、`numpy`；網頁介面另外需要 `gradio`（6.x）。
+- **Python 環境**：套件清單在 repo 根目錄的 [`requirements.txt`](../requirements.txt)（`fsrs`、`gradio` 6.x、`numpy`、`pydantic`、`requests`、`rich`）。
+  - 我自己用上層資料夾的共用 uv 環境（`../.venv`），下面的指令都照這個寫。
+  - 別人自己建環境：`python -m venv .venv && .venv/bin/pip install -r requirements.txt`，並把指令裡的 `../.venv/bin/python` 換成 `.venv/bin/python`。
+  - 程式新增套件時，兩邊都要加：上層用 `uv add`，這裡改 `requirements.txt`。
 
 以下指令都在 repo 根目錄執行。
 

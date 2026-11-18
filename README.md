@@ -31,6 +31,23 @@ To test it, the same question set is run on three setups:
 
 The step order and decision log are in [`docs/plan.md`](docs/plan.md).
 
+## Quick start
+
+It needs [Ollama](https://ollama.com), Python 3.12 or newer, and your own course notes (this repository does not include any).
+
+```bash
+ollama pull qwen3.5:9b && ollama pull qwen3-embedding:0.6b
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+The notes are read in place: put this folder inside your notes folder and edit the patterns in [`data/knowledge/sources.json`](data/knowledge/sources.json). Then build the index and start a review session; the commands are in [`dev/README.md`](dev/README.md).
+
+```bash
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta index
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta embed
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta web --open
+```
+
 ## Repository layout
 
 | Folder | Contents |

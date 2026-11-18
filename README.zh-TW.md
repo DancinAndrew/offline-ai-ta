@@ -31,6 +31,23 @@
 
 步驟順序與決策紀錄見 [`docs/plan.md`](docs/plan.md)。
 
+## 快速開始
+
+需要 [Ollama](https://ollama.com)、Python 3.12 以上，以及你自己的課程筆記（這個 repo 不含任何課程檔案）。
+
+```bash
+ollama pull qwen3.5:9b && ollama pull qwen3-embedding:0.6b
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+筆記是原地讀取的：把這個資料夾放進你的筆記資料夾，再改 [`data/knowledge/sources.json`](data/knowledge/sources.json) 裡的路徑樣式。然後建索引、開始一段複習；各指令見 [`dev/README.md`](dev/README.md)。
+
+```bash
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta index
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta embed
+PYTHONPATH=dev/src .venv/bin/python -m ai_ta web --open
+```
+
 ## 資料夾
 
 | 資料夾 | 內容 |

@@ -49,10 +49,10 @@ This folder is the public GitHub repo `DancinAndrew/offline-ai-ta`.
 
 ## Environment
 
-Use the shared venv in the parent folder: `../.venv`, a uv project defined by `../pyproject.toml` + `../uv.lock` (Python 3.12). Do not create another environment or use `uv run --with ...` ad-hoc installs. Add packages with `uv add` from the parent folder so the lock file stays in sync. The public repo will need its own dependency list before others can run it.
+Use the shared venv in the parent folder: `../.venv`, a uv project defined by `../pyproject.toml` + `../uv.lock` (Python 3.12). Do not create another environment or use `uv run --with ...` ad-hoc installs. Add packages with `uv add` from the parent folder so the lock file stays in sync. The public repo's own dependency list is `requirements.txt` at the root (six packages, checked in a fresh venv); when the code starts using a new package, add it there as well as with `uv add`.
 
 ```bash
 ../.venv/bin/python script.py
 ```
 
-Machine: Apple M5, 32 GB RAM. Ollama 0.40.10 with `qwen3.5:9b` installed.
+Machine: Apple M5, 32 GB RAM. Ollama 0.40.16 with `qwen3.5:9b` installed.

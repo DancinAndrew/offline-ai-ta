@@ -1,0 +1,13 @@
+# Python packages the AI TA needs (Python 3.12 or newer).
+#
+# Lower bounds are the versions it was developed and tested with (2026-11-16). Ollama and its models
+# are installed separately; see dev/README.md.
+#
+#   python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+fsrs>=6.3.2          # FSRS review scheduling (learner model)
+gradio>=6.32.0,<7    # local web page for the review session; the page uses Gradio 6 options
+numpy>=2.5.3         # vector search over the section embeddings, the calculator
+pydantic>=2.14.3     # validation of the model's structured (JSON) output
+requests>=2.34.2     # calls to the local Ollama server
+rich>=15.0.0         # terminal output
