@@ -50,6 +50,8 @@ flowchart LR
 
 *The 16 questions I asked a bare `qwen3.5:9b` while preparing for the midterm, rerun through the AI TA (run `2026-11-16-1005`). Median answer: 59.5 s and 1,982 characters for the bare model versus 16.0 s and 274 characters for the AI TA, which cited its notes on all 16. The two sides were measured differently (Ollama app versus this program), so the times only show the order of magnitude. The AI TA's correct / partially correct / wrong counts (10 / 6 / 0) are a first-pass review by Claude, not a final grade, and only 2 bare-model answers were checked.*
 
+**Held-out comparison.** I ran the comparison of the bare model, the AI TA and a frontier model on 30 held-out questions. By my blind paired judgment, the AI TA met all three criteria that I fixed on 2026-11-11, before any results: rated as good as or better than the frontier model on at least 75% of questions, median answer time of at most 40 seconds, and median answer length of at most 600 characters ([criteria](reports/2026-11-11-proposal.md)). Thirty questions and one rater make a small test, so read it as evidence for one course and one learner (see Limitations).
+
 Raw runs and reviews are in [`dev/eval/runs/`](dev/eval/runs/); the question sets and method are in [`dev/eval/README.md`](dev/eval/README.md).
 
 ## Quick start
@@ -73,8 +75,8 @@ Terminal commands (`search`, `ask`, `quiz`, `review`, `progress`) are listed in 
 
 ## Limitations
 
-- **Work in progress.** The planned comparison of the bare model, the AI TA and a frontier model on the same questions, graded blind by me, has not been run yet, so the core hypothesis below is still untested.
-- **Correctness labels are provisional.** Current verdicts come from an AI reviewer (Claude) and will be replaced by my blind grading.
+- **Small test, one rater.** The held-out comparison has 30 questions and I am the only rater, so the uncertainty is wide: for example, 23 of 30 passes has a 95% interval of about 59% to 88% ([decision 0006](docs/decisions/0006-eval-set-split.md)).
+- **Development-set verdicts are provisional.** The correct / partially correct / wrong counts above come from an AI reviewer (Claude), not from my grading; the blind comparison is the only result I judged myself.
 - **One course, one learner.** It is tuned on my own Chinese notes for one machine learning course and has not been tried on other subjects or by other students.
 - **Bounded by the notes.** When the notes do not cover a point, the TA is designed to say so rather than fill the gap from memory.
 
@@ -84,7 +86,7 @@ Terminal commands (`search`, `ask`, `quiz`, `review`, `progress`) are listed in 
 - **Personalized.** It is grounded in my own lecture notes and quiz history, so it is not a generic chatbot.
 - **Course requirement.** It is built for the Machine Learning course at National Central University (Fall 2026), where students build their own AI TA on a local model.
 
-**Core hypothesis:** on scoped review tasks with course materials available, a 9B local model with a well-designed harness (prompts, tools, memory, workflow) can approach the quality of frontier models. The planned test runs the same question set on three setups: the bare local model (baseline), the AI TA (the same model plus this harness), and a frontier model given the same materials (reference ceiling, used only for evaluation).
+**Core hypothesis:** on scoped review tasks with course materials available, a 9B local model with a well-designed harness (prompts, tools, memory, workflow) can approach the quality of frontier models. The test ran the same question set on three setups: the bare local model (baseline), the AI TA (the same model plus this harness), and a frontier model given the same materials (reference ceiling, used only for evaluation).
 
 **Approach:** research how others build course tutors and run agents on small models ([`research/`](research/)), decide the design ([`docs/decisions/`](docs/decisions/)), build a minimal offline version and then the interface (`dev/`), then evaluate and report (`reports/`). The step order is in [`docs/plan.md`](docs/plan.md); the project overview is in the [proposal](reports/2026-11-11-proposal.md).
 
