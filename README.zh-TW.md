@@ -4,7 +4,7 @@
 
 [English](README.md)
 
-> **狀態：** 終端機版的第一版可以用了。搜尋、解釋、練習三種模式都跑在本機模型上，第一次評估的結果在 [`dev/eval/runs/`](dev/eval/runs/)。用法見 [`dev/README.md`](dev/README.md)，專案概覽見[提案](reports/2026-11-11-proposal.zh-TW.md)。
+> **狀態：** 第一版可以用了，有終端機指令，也有只在本機開的複習網頁（Gradio）。搜尋、解釋、練習三種模式都跑在本機模型上，第一次評估的結果在 [`dev/eval/runs/`](dev/eval/runs/)。用法見 [`dev/README.md`](dev/README.md)，專案概覽見[提案](reports/2026-11-11-proposal.zh-TW.md)。
 
 ## 為什麼做
 
